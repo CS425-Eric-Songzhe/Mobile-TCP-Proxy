@@ -9,32 +9,66 @@
 #include <netinet/in.h>
 #include <sys/types.h>
 #include <string.h>
-  
-int main(int argc, char const *argv[])
+
+
+/*
+ * set up socket and set serv_addr fields 
+ */  
+int setup_socket(struct sockaddr_in *serv_addr, char const *ip, int port)
 {
-	//struct sockaddr_in address;
-    	int sock = 0; //valread;
-    	struct sockaddr_in serv_addr;
+        int sock = 0;
     	if ((sock = socket(AF_INET, SOCK_STREAM, 0)) < 0)
     	{
         	printf("\n Socket creation error \n");
-        	return -1;
+		exit(EXIT_FAILURE);
     	}
-  
-    	memset(&serv_addr, '0', sizeof(serv_addr));
-  
-    	serv_addr.sin_family = AF_INET;
-    	serv_addr.sin_port = htons(atoi(argv[2]));
-	serv_addr.sin_addr.s_addr = inet_addr(argv[1]);      		
-  
-    	if (connect(sock, (struct sockaddr *)&serv_addr, sizeof(serv_addr)) < 0)
+	
+    	memset(serv_addr, '0', sizeof(*serv_addr));
+    	serv_addr->sin_family = AF_INET;
+    	serv_addr->sin_port = htons(port);
+	serv_addr->sin_addr.s_addr = inet_addr(ip);         
+
+	return sock;
+}
+
+
+/*
+ * connect to server with serv_addr
+ */
+void connect_to_server(struct sockaddr_in *serv_addr, int sock)
+{
+
+    	if (connect(sock, (struct sockaddr *)serv_addr, sizeof(*serv_addr)) < 0)
     	{	
         	printf("\nConnection Failed \n");
-        	return -1;
+                exit(EXIT_FAILURE);
     	}
+
+}
+
+
+/*
+ * MAIN
+ */
+int main(int argc, char const *argv[])
+{
+        // Read Arguments
+	char const *ip = argv[1];
+	int port = atoi(argv[2]);
+
+        // Setup Socket 
+    	struct sockaddr_in serv_addr;
+	int sock = setup_socket(&serv_addr, ip, port);
+
+	// Connect to Server
+	connect_to_server(&serv_addr, sock);
 	printf("Successfully connected to server\n");
-    	send(sock , "hello\n" , strlen("hello") , 0 );
+    	
+	// Read and Send Messages
+	send(sock , "hello\n" , strlen("hello") , 0 );
+	
 	//printf("check");
-	//close(sock);
-    	return 0;
+	
+	close(sock);    	
+	return 0;
 }
