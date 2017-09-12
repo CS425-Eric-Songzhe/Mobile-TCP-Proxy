@@ -75,6 +75,9 @@ int main(int argc, char const *argv[])
 	char const *ip = argv[1];
 	int port = atoi(argv[2]);
 
+        // Create a buffer
+        char buffer[256]; 
+
         // Setup Socket 
     	struct sockaddr_in serv_addr;
 	int sock = setup_socket(&serv_addr, ip, port);
@@ -85,17 +88,18 @@ int main(int argc, char const *argv[])
     	
 	// Read and Send Messages
 	while(1){
-
+          printf("Please enter the message: \n");
 	  // TODO: read input from stdin
-	  char *input = "hello";
+          while(fgets(buffer, sizeof(buffer), stdin) != NULL){
+	  //char *input = "hello";
 
 	  // make and send message 
-	  long len = strlen(input); // number of bytes in payload
+	  long len = strlen(buffer); // number of bytes in payload
 	  char msg[4+len];
-	  make_msg(msg, len, input);
+	  make_msg(msg, len, buffer);
 	  send(sock, msg, 4+len, 0);
-
-	  break; // TODO: remove when looping
+          }
+	  //break; // TODO: remove when looping
 	}
         
 	close(sock);    	
