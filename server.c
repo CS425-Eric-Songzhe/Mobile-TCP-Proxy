@@ -112,6 +112,7 @@ int main(int argc, char const *argv[])
 		// Receive messages
 		while((len=recv(new_socket, buffer, sizeof(buffer), 0)) > 0){
 		       // get and print payload length
+                       printf("Receive message from client: \n");
 		       int paylen = get_length(buffer);
 		       printf("%d\n", paylen);
 		       
