@@ -47,6 +47,25 @@ void connect_to_server(struct sockaddr_in *serv_addr, int sock)
 }
 
 
+
+/*
+ * prepend length of payload to payload. this is the message to be sent
+ */
+void make_msg(char *msg, long len, char *input)
+{
+
+       long n = len;
+       msg[0] = (n >> 24) & 0xFF;
+       msg[1] = (n >> 16) & 0xFF;
+       msg[2] = (n >> 8) & 0xFF;
+       msg[3] = n & 0xFF;
+       strncpy(&msg[4], input, len);
+       //printf("%d,%d:|%s|", (int)len, (int)strlen(msg), msg);
+
+}
+
+
+
 /*
  * MAIN
  */
@@ -65,10 +84,20 @@ int main(int argc, char const *argv[])
 	printf("Successfully connected to server\n");
     	
 	// Read and Send Messages
-	send(sock , "hello\n" , strlen("hello") , 0 );
-	
-	//printf("check");
-	
+	while(1){
+
+	  // TODO: read input from stdin
+	  char *input = "hello";
+
+	  // make and send message 
+	  long len = strlen(input); // number of bytes in payload
+	  char msg[4+len];
+	  make_msg(msg, len, input);
+	  send(sock, msg, 4+len, 0);
+
+	  break; // TODO: remove when looping
+	}
+        
 	close(sock);    	
 	return 0;
 }

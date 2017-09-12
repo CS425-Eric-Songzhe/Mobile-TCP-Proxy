@@ -70,6 +70,22 @@ int accept_client(int server_fd, struct sockaddr_in *address)
 
 
 /*
+ * return the first 4 bytes of buffer as an int
+ */  
+int get_length(char *buffer){
+
+  int num = 0;
+
+  num = buffer[0] << 24 | 
+    (buffer[1] & 0xff) << 16 | 
+    (buffer[2] & 0xff) << 8 | 
+    (buffer[3] & 0xff);
+
+  return num;
+}
+
+
+/*
  * MAIN
  */
 int main(int argc, char const *argv[])
@@ -95,8 +111,16 @@ int main(int argc, char const *argv[])
 
 		// Receive messages
 		while((len=recv(new_socket, buffer, sizeof(buffer), 0)) > 0){
-			//TODO: read and print
-			printf("Client: %s\n", buffer);
+		       // get and print payload length
+		       int paylen = get_length(buffer);
+		       printf("%d\n", paylen);
+		       
+		       // get and print payload -- start 4 bytes in
+		       int i=0;
+		       for(i=4; i < 4+paylen; i++)
+			 printf("%c",buffer[i]);
+		       printf("\n");
+		       
 		}
 		if(len == 0){
 			printf("Nothing more from the client. Client has been shut down.\n");
