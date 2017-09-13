@@ -104,10 +104,10 @@ int main(int argc, char const *argv[])
 	int new_socket = 0;
 	int len = 0;
     	char buffer[1024] = {0};
-	
+	while(1){	
 	// Accept client
 	new_socket = accept_client(server_fd, &address);
-	//printf("A client connected!\n");
+	printf("A client connected!\n");
 
 	// Receive messages from new_socket
 	while((len=recv(new_socket, buffer, sizeof(buffer), 0)) > 0){
@@ -129,6 +129,7 @@ int main(int argc, char const *argv[])
 	  printf("ERROR on RECV()!\n");
 	
 	close(new_socket);
+	}
 	close(server_fd);
     	return 0;
 }
