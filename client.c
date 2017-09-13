@@ -19,7 +19,7 @@ int setup_socket(struct sockaddr_in *serv_addr, char const *ip, int port)
         int sock = 0;
     	if ((sock = socket(AF_INET, SOCK_STREAM, 0)) < 0)
     	{
-        	printf("\n Socket creation error \n");
+        	perror("Socket creation error");
 		exit(EXIT_FAILURE);
     	}
 	
@@ -40,7 +40,7 @@ void connect_to_server(struct sockaddr_in *serv_addr, int sock)
 
     	if (connect(sock, (struct sockaddr *)serv_addr, sizeof(*serv_addr)) < 0)
     	{	
-        	printf("\nConnection Failed \n");
+        	perror("Connection Failed");
                 exit(EXIT_FAILURE);
     	}
 
@@ -67,6 +67,17 @@ void make_msg(char *msg, long len, char *input)
 
 
 /*
+ * replace the last character with '\0'
+ */
+void remove_last_char(char* buffer){
+
+  int len = strlen(buffer);
+  buffer[len-1] = '\0';
+}
+
+
+
+/*
  * MAIN
  */
 int main(int argc, char const *argv[])
@@ -84,24 +95,29 @@ int main(int argc, char const *argv[])
 
 	// Connect to Server
 	connect_to_server(&serv_addr, sock);
-	printf("Successfully connected to server\n");
+	//printf("Successfully connected to server\n");
     	
 	// Read and Send Messages
-	while(1){
-          printf("Please enter the message: \n");
-	  // TODO: read input from stdin
-          while(fgets(buffer, sizeof(buffer), stdin) != NULL){
-	  //char *input = "hello";
+	//printf("Please enter the message: \n"); 
+	//read input from stdin
+	while(fgets(buffer, sizeof(buffer), stdin) != NULL){
+	  remove_last_char(buffer); // strips \n char
+	    
+	  // get length as 4-byte long
+	  long len = strlen(buffer); // num bytes in payload
+	  if(len == 0) // enures a blank message is not sent
+	    continue; 
 
 	  // make and send message 
-	  long len = strlen(buffer); // number of bytes in payload
-	  char msg[4+len];
+	  char msg[4+len]; // make room for int (payload size)
 	  make_msg(msg, len, buffer);
 	  send(sock, msg, 4+len, 0);
-          }
-	  //break; // TODO: remove when looping
 	}
-        
+	if(feof(stdin))
+	  printf("Communication Sucessfully Terminated\n");
+	else
+	  printf("ERROR: Communication Interrupted\n");
+	  
 	close(sock);    	
 	return 0;
 }

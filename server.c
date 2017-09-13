@@ -104,35 +104,31 @@ int main(int argc, char const *argv[])
 	int new_socket = 0;
 	int len = 0;
     	char buffer[1024] = {0};
-	while(1){
-	        // Accept new client
-	        new_socket = accept_client(server_fd, &address);
-		printf("A client connected!\n");
+	
+	// Accept client
+	new_socket = accept_client(server_fd, &address);
+	//printf("A client connected!\n");
 
-		// Receive messages
-		while((len=recv(new_socket, buffer, sizeof(buffer), 0)) > 0){
-		       // get and print payload length
-                       printf("Receive message from client: \n");
-		       int paylen = get_length(buffer);
-		       printf("%d\n", paylen);
+	// Receive messages from new_socket
+	while((len=recv(new_socket, buffer, sizeof(buffer), 0)) > 0){
+	  // get and print payload length
+	  //printf("Received message from client: \n");
+	  int paylen = get_length(buffer);
+	  printf("%d\n", paylen);
 		       
-		       // get and print payload -- start 4 bytes in
-		       int i=0;
-		       for(i=4; i < 4+paylen; i++)
-			 printf("%c",buffer[i]);
-		       printf("\n");
+	  // get and print payload -- start 4 bytes in
+	  int i=0;
+	  for(i=4; i < 4+paylen; i++)
+	    printf("%c",buffer[i]);
+	  printf("\n");
 		       
-		}
-		if(len == 0){
-			printf("Nothing more from the client. Client has been shut down.\n");
-		}
-		if(len < 0){
-			printf("ERROR on RECV()!\n");
-		}
-		//printf("%s", buffer);
-		close(new_socket);
-    	}
-
+	}
+	if(len == 0)
+	  printf("Nothing more from the client. Client has been shut down.\n");
+	if(len < 0)
+	  printf("ERROR on RECV()!\n");
+	
+	close(new_socket);
 	close(server_fd);
     	return 0;
 }
