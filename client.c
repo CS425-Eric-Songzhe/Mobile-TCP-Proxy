@@ -87,7 +87,7 @@ int main(int argc, char const *argv[])
 	int port = atoi(argv[2]);
 
         // Create a buffer
-        char buffer[256]; 
+        char buffer[1025]; // extra char for '\n'
 
         // Setup Socket 
     	struct sockaddr_in serv_addr;
@@ -113,10 +113,10 @@ int main(int argc, char const *argv[])
 	  make_msg(msg, len, buffer);
 	  send(sock, msg, 4+len, 0);
 	}
-	if(feof(stdin))
-	  printf("Communication Sucessfully Terminated\n");
-	else
-	  printf("ERROR: Communication Interrupted\n");
+	//if(feof(stdin))
+	//  printf("Communication Sucessfully Terminated\n");
+	//else
+	//  printf("ERROR: Communication Interrupted\n");
 	  
 	close(sock);    	
 	return 0;
