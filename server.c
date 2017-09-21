@@ -51,6 +51,21 @@ void bind_and_listen(int server_fd, struct sockaddr_in *address, int backlog)
 
 }
 
+/*
+ * connect to server with serv_addr
+ */
+void connect_to_telnet(struct sockaddr_in *serv_addr, int sock)
+{
+
+        if (connect(sock, (struct sockaddr *)serv_addr, sizeof(*serv_addr)) < 0)
+        {
+                perror("Connection Failed");
+                exit(EXIT_FAILURE);
+        }
+	printf("telnet connected at: %d\n", sock);
+}
+
+
 
 /*
  * accept a new client and return socket value
@@ -95,18 +110,22 @@ int main(int argc, char const *argv[])
 
 	// Setup Socket
     	struct sockaddr_in address;
+	struct sockaddr_in daemon_address;
 	int server_fd = setup_socket(&address, NULL, port);
- 
-    	// Forcefully attaching socket to port
-	bind_and_listen(server_fd, &address, 5);
-	
+ 	int server_teldaemon = setup_socket(&daemon_address, "127.0.0.1", 23);
+	connect_to_telnet(&daemon_address, server_teldaemon);
+  	// Forcefully attaching socket to port
+	//bind_and_listen(server_fd, &address, 5);
+	//bind_and_listen(server_, &address, 5);	
+
 	// Client Loop	
 	int new_socket = 0;
 	int len = 0;
     	char buffer[1024] = {0};
 	while(1){	
 	  // Accept client
-	  new_socket = accept_client(server_fd, &address);
+	  //new_socket = accept_client(server_fd, &address);
+	  new_socket = accept_client(server_teldaemon, &daemon_address);
 	  //printf("A client connected!\n");
 
 	  // Receive messages from new_socket
@@ -130,6 +149,6 @@ int main(int argc, char const *argv[])
 	
 	  close(new_socket);
 	}
-	close(server_fd);
+	close(server_teldaemon);
     	return 0;
 }
