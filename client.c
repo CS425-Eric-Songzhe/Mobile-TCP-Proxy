@@ -41,6 +41,7 @@ void connect_to_server(struct sockaddr_in *serv_addr, int sock)
     	if (connect(sock, (struct sockaddr *)serv_addr, sizeof(*serv_addr)) < 0)
     	{	
         	perror("Connection Failed");
+		printf("%d\n", sock);
                 exit(EXIT_FAILURE);
     	}
 
@@ -64,6 +65,22 @@ void make_msg(char *msg, long len, char *input)
 
 }
 
+/*  * bind port to server_fd socket and setup listening queue  */ 
+void bind_and_listen(int server_fd, struct sockaddr_in *address, int backlog) 
+{         
+	if(bind(server_fd, (struct sockaddr *)address, sizeof(*address)) < 0)         
+	{                 
+		perror("bind failed");                 
+		exit(EXIT_FAILURE);         
+	}         
+	if (listen(server_fd, backlog) < 0)         
+	{                 
+		perror("listen");                 
+		exit(EXIT_FAILURE);         
+	}
+	printf("bind&listen success on %d\n", server_fd);  
+}
+
 
 
 /*
@@ -83,18 +100,23 @@ void remove_last_char(char* buffer){
 int main(int argc, char const *argv[])
 {
         // Read Arguments
-	char const *ip = argv[1];
-	int port = atoi(argv[2]);
+	char const *ip = argv[2];
+	int port_sproxy = atoi(argv[3]);
+	int port_telnet = atoi(argv[1]);
 
         // Create a buffer
         char buffer[1025]; // extra char for '\n'
 
         // Setup Socket 
     	struct sockaddr_in serv_addr;
-	int sock = setup_socket(&serv_addr, ip, port);
+	int sock = setup_socket(&serv_addr, ip, port_sproxy);
+
+	struct sockaddr_in serv_addr_telnet;
+        int sock_telnet = setup_socket(&serv_addr_telnet, "127.0.0.1", port_telnet);
 
 	// Connect to Server
-	connect_to_server(&serv_addr, sock);
+	//connect_to_server(&serv_addr, sock);
+	bind_and_listen(sock_telnet, &serv_addr_telnet, 5);
 	//printf("Successfully connected to server\n");
     	
 	// Read and Send Messages
@@ -111,13 +133,13 @@ int main(int argc, char const *argv[])
 	  // make and send message 
 	  char msg[4+len]; // make room for int (payload size)
 	  make_msg(msg, len, buffer);
-	  send(sock, msg, 4+len, 0);
+	  send(sock_telnet, msg, 4+len, 0);
 	}
 	//if(feof(stdin))
 	//  printf("Communication Sucessfully Terminated\n");
 	//else
 	//  printf("ERROR: Communication Interrupted\n");
 	  
-	close(sock);    	
+	close(sock_telnet);    	
 	return 0;
 }
