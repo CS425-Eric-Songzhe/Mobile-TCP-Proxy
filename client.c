@@ -117,7 +117,7 @@ void remove_last_char(char* buffer){
  */
 int main(int argc, char const *argv[])
 {
-        int s1, s2, n, rv;
+	int s1=0, s2=0, n=0, rv=0;
 	fd_set readfds;
 	struct timeval tv;
 	char cmd_buf[256], reply_buf[256];
@@ -199,11 +199,11 @@ int main(int argc, char const *argv[])
     		if (FD_ISSET(s1, &readfds)) {
         		recv(s1, cmd_buf, sizeof(cmd_buf), 0);
 			printf("Recved command from telnet: %s\n", cmd_buf);
-    			send(sock, buffer, strlen(buffer), 0);
+    			send(sock, cmd_buf, strlen(cmd_buf), 0);
 		}
     		if (FD_ISSET(s2, &readfds)) {
         		recv(s2, reply_buf, sizeof(reply_buf), 0);
-			printf("Recved reply from daemon: %s\n", reply_buf);
+			printf("Recved reply from server: %s\n", reply_buf);
     		}
 	}	
 	  // Receive messages from new_socket
