@@ -108,12 +108,20 @@ int main(int argc, char const *argv[])
         // Read Arguments
         int port = atoi(argv[1]);
 
-	// Setup Socket
+	// Setup Sockets
+	printf("Setting up socket for cproxy\n");
     	struct sockaddr_in address;
-	struct sockaddr_in daemon_address;
 	int server_fd = setup_socket(&address, NULL, port);
+	printf("- socket for cproxy open\n");
+
+	printf("Setting up socket for telnet (daemon)\n");
+	struct sockaddr_in daemon_address;
  	int server_teldaemon = setup_socket(&daemon_address, "127.0.0.1", 23);
+	printf("- socket for telnet (daemon) open\n");
+
+	// Connect with Telnet (Daemon)
 	connect_to_telnet(&daemon_address, server_teldaemon);
+
   	// Forcefully attaching socket to port
 	//bind_and_listen(server_fd, &address, 5);
 	//bind_and_listen(server_, &address, 5);	
