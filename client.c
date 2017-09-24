@@ -168,9 +168,9 @@ int main(int argc, char const *argv[])
 	  s1 = accept_client(sock_telnet, &addr_telnet);
 	  printf("- telnet request accepted\n");
 
-	  printf("Accepting request from daemon\n");
-          s2 = accept_client(sock, &serv_addr);
-          printf("- daemon request accepted\n");
+	 // printf("Accepting request from daemon\n");
+          //s2 = accept_client(sock, &serv_addr);
+          //printf("- daemon request accepted\n");
 	
 	while(1){
 	  // clear the set ahead of time
@@ -199,7 +199,8 @@ int main(int argc, char const *argv[])
     		if (FD_ISSET(s1, &readfds)) {
         		recv(s1, cmd_buf, sizeof(cmd_buf), 0);
 			printf("Recved command from telnet: %s\n", cmd_buf);
-    		}
+    			send(sock, buffer, strlen(buffer), 0);
+		}
     		if (FD_ISSET(s2, &readfds)) {
         		recv(s2, reply_buf, sizeof(reply_buf), 0);
 			printf("Recved reply from daemon: %s\n", reply_buf);
