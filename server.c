@@ -1,6 +1,7 @@
 //Description: Server side of the Moblie TCP Proxy project
 //Author: Eric Evans, Songzhe Zhu
 //Date: Sep 7 2017
+#include <sys/select.h>
 #include <unistd.h> 
 #include <stdio.h> 
 #include <sys/socket.h> 
@@ -105,6 +106,9 @@ int get_length(char *buffer){
  */
 int main(int argc, char const *argv[])
 {
+	int s1=0, s2=0, n=0;
+	fd_set readfds;
+	struct timeval tv;
         // Read Arguments
         int port = atoi(argv[1]);
 
@@ -114,17 +118,16 @@ int main(int argc, char const *argv[])
 	int server_fd = setup_socket(&address, NULL, port);
 	printf("- socket for cproxy open\n");
 
-/*	printf("Setting up socket for telnet (daemon)\n");
+	printf("Setting up socket for telnet (daemon)\n");
 	struct sockaddr_in daemon_address;
- 	int server_teldaemon = setup_socket(&daemon_address, "127.0.0.1", 23);
+ 	int server_teldaemon = setup_socket(&daemon_address, "127.0.0.1", 7070);
 	printf("- socket for telnet (daemon) open\n");
-*/
 	// Connect with Telnet (Daemon)
-//	connect_to_telnet(&daemon_address, server_teldaemon);
+	//connect_to_telnet(&daemon_address, server_teldaemon);
 
   	// Forcefully attaching socket to port
 	bind_and_listen(server_fd, &address, 5);
-	//bind_and_listen(server_, &address, 5);	
+	bind_and_listen(server_teldaemon, &daemon_address, 5);	
 
 	// Client Loop	
 	int new_socket = 0;
@@ -132,12 +135,17 @@ int main(int argc, char const *argv[])
     	char buffer[1024] = {0};
 	while(1){	
 	  // Accept client
-	  new_socket = accept_client(server_fd, &address);
-	  //new_socket = accept_client(server_teldaemon, &daemon_address);
+	  printf("Accepting from cProxy\n");
+	  s1 = accept_client(server_fd, &address);
+	  printf("- Accepted\n");
+
+	  printf("Accepting from daemon\n");
+	  s2 = accept_client(server_teldaemon, &daemon_address);
+	  printf("- Accepted\n");
 	  //printf("A client connected!\n");
 
 	  // Receive messages from new_socket
-	  while((len=recv(new_socket, buffer, sizeof(buffer), 0)) > 0){
+	  while((len=recv(s1, buffer, sizeof(buffer), 0)) > 0){
 		printf("%s\n",buffer);	   
 
  // get and print payload length
@@ -157,7 +165,7 @@ int main(int argc, char const *argv[])
 	  if(len < 0)
 	    printf("ERROR on RECV()!\n");
 	
-	  close(new_socket);
+	  close(s1);
 	}
 	
 	close(server_fd);
