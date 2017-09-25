@@ -114,31 +114,31 @@ void remove_last_char(char* buffer){
 
 /*
  * MAIN
- */
+	 */
 int main(int argc, char const *argv[])
 {
 	int s1=0, s2=0, n=0, rv=0;
 	fd_set readfds;
 	struct timeval tv;
-	char cmd_buf[256], reply_buf[256];
+	char cmd_buf[1025], reply_buf[1025];
 	
 	// Read Arguments
-        char const *ip = argv[2]; // server ip address
+	char const *ip = argv[2]; // server ip address
 	int port_sproxy = atoi(argv[3]); // server port
 	int port_telnet = atoi(argv[1]); // telnet port
 
-        // Create a buffer
-        //char buffer[1025]; // extra char for '\n'
+	// Create a buffer
+	//char buffer[1025]; // extra char for '\n'
 
-        // Setup Sockets
+	// Setup Sockets
 	printf("Setting up socket for sproxy\n");
-    	struct sockaddr_in serv_addr;
+	struct sockaddr_in serv_addr;
 	int sock = setup_socket(&serv_addr, ip, port_sproxy);
 	printf("- socket for sproxy open\n");
 
 	printf("Setting up socket for telnet\n");
 	struct sockaddr_in addr_telnet;
-        int sock_telnet = setup_socket(&addr_telnet, "127.0.0.1", port_telnet);
+	int sock_telnet = setup_socket(&addr_telnet, "127.0.0.1", port_telnet);
 	printf("- socket for telnet open\n");
 
 	// Connect to Server
@@ -157,8 +157,8 @@ int main(int argc, char const *argv[])
 	//printf("- connected to daemon\n");
 
 	printf("Listening for telnet connect request\n");
-        bind_and_listen(sock_telnet, &addr_telnet, 5);
-        printf("- connected to telnet\n");
+	bind_and_listen(sock_telnet, &addr_telnet, 5);
+	printf("- connected to telnet\n");
 	// Read Incoming Data from Telent and Send to Sproxy
 	int new_socket = 0;
 	int len = 0;
@@ -169,58 +169,60 @@ int main(int argc, char const *argv[])
 	  printf("- telnet request accepted\n");
 
 	 // printf("Accepting request from daemon\n");
-          //s2 = accept_client(sock, &serv_addr);
-          //printf("- daemon request accepted\n");
+	  //s2 = accept_client(sock, &serv_addr);
+	  //printf("- daemon request accepted\n");
 	
-	while(1){
-	  // clear the set ahead of time
-        FD_ZERO(&readfds);
+		while(1){
+		  // clear the set ahead of time
+		FD_ZERO(&readfds);
 
-        // add our descriptors to the set
-        FD_SET(s1, &readfds);
-        FD_SET(s2, &readfds);
+		// add our descriptors to the set
+		FD_SET(s1, &readfds);
+		FD_SET(s2, &readfds);
 
-        // find the largest descriptor, and plus one.
-        if (s1 > s2) n = s1 + 1;
-        else n = s2 +1;
+		// find the largest descriptor, and plus one.
+		if (s1 > s2) n = s1 + 1;
+		else n = s2 +1;
 
 
-        // wait until either socket has data ready to be recv()d (timeout 10.5 secs)
-        tv.tv_sec = 10;
-        tv.tv_usec = 500000;
-        rv = select(n, &readfds, NULL, NULL, &tv);
-	
-	if (rv == -1) {
-    		perror("select"); // error occurred in select()
-	} else if (rv == 0) {
-    		printf("Timeout occurred!  No data after 10.5 seconds.\n");
-	}else {
-    	// one or both of the descriptors have data
-    		if (FD_ISSET(s1, &readfds)) {
-        		recv(s1, cmd_buf, sizeof(cmd_buf), 0);
-			printf("Recved command from telnet: %s\n", cmd_buf);
-    			send(sock, cmd_buf, strlen(cmd_buf), 0);
+		// wait until either socket has data ready to be recv()d (timeout 10.5 secs)
+		tv.tv_sec = 10;
+		tv.tv_usec = 500000;
+		rv = select(n, &readfds, NULL, NULL, &tv);
+		
+		if (rv == -1) {
+			perror("select"); // error occurred in select()
+		} else if (rv == 0) {
+			printf("Timeout occurred!  No data after 10.5 seconds.\n");
+		}else {
+		// one or both of the descriptors have data
+			if (FD_ISSET(s1, &readfds)) {
+				recv(s1, cmd_buf, sizeof(cmd_buf), 0);
+				printf("Recved command from telnet: %s\n", cmd_buf);
+				send(sock, cmd_buf, strlen(cmd_buf), 0);
+				memset(cmd_buf, 0, sizeof(cmd_buf));
+			}
+			if (FD_ISSET(s2, &readfds)) {
+				recv(s2, reply_buf, sizeof(reply_buf), 0);
+				printf("Recved reply from server: %s\n", reply_buf);
+				memset(reply_buf, 0, sizeof(reply_buf));
+			}
+		}	
+		  // Receive messages from new_socket
+		  /*while((len=recv(new_socket, buffer, sizeof(buffer), 0)) > 0){
+		    printf("Received message from telnet \n");
+		    printf("%s",buffer);
+		    send(sock, buffer, strlen(buffer), 0);
+		  }
+		  if(len == 0)
+		    printf("Nothing more from telnet. Telnet has closed.\n");
+		  if(len < 0)
+		    printf("ERROR on RECV()!\n");*/
 		}
-    		if (FD_ISSET(s2, &readfds)) {
-        		recv(s2, reply_buf, sizeof(reply_buf), 0);
-			printf("Recved reply from server: %s\n", reply_buf);
-    		}
-	}	
-	  // Receive messages from new_socket
-	  /*while((len=recv(new_socket, buffer, sizeof(buffer), 0)) > 0){
-	    printf("Received message from telnet \n");
-	    printf("%s",buffer);
-	    send(sock, buffer, strlen(buffer), 0);
-	  }
-	  if(len == 0)
-	    printf("Nothing more from telnet. Telnet has closed.\n");
-	  if(len < 0)
-	    printf("ERROR on RECV()!\n");*/
-	}
-	  close(s1);
-	  close(s2);
-	}
-	
+		  close(s1);
+		  close(s2);
+		}
+		
 	//read input from stdin
 	//while(fgets(buffer, sizeof(buffer), stdin) != NULL){
 	//  remove_last_char(buffer); // strips \n char
