@@ -1,14 +1,14 @@
 
 FLAGS = gcc -Wall          
 
-.PHONY : all clean client server                                       
-all : client server
+.PHONY : all clean cproxy sproxy                                       
+all : cproxy sproxy
 
-client : 
-	$(FLAGS) client.c -o $@
+cproxy : 
+	$(FLAGS) cproxy.c -o $@
 
-server : 
-	$(FLAGS) server.c -o $@
+sproxy : 
+	$(FLAGS) sproxy.c -o $@
 
 clean :
-	/bin/rm -f *.o *.gcov *.gcno *gcda client server
+	/bin/rm -f *.o *.gcov *.gcno *gcda cproxy sproxy

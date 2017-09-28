@@ -167,7 +167,7 @@ int main(int argc, char const *argv[])
   //bind_and_listen(sock, &serv_addr, 5);
   //printf("- connected to client\n");
   // Read Incoming Data from Telent and Send to Sproxy
-  int new_socket = 0;
+  //int new_socket = 0;
   int len1 = 0, len2 = 0;
   while(1){
     // Accept telnet

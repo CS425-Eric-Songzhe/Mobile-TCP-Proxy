@@ -149,9 +149,9 @@ int main(int argc, char const *argv[])
   //bind_and_listen(server_teldaemon, &daemon_address, 1);	
 
   // Client Loop	
-  int new_socket = 0;
+  //int new_socket = 0;
   int len = 0;
-  char buffer[1024] = {0};
+  //char buffer[1024] = {0};
   while(1){	
 	// Accept client
 	printf("Accepting from cProxy\n");
