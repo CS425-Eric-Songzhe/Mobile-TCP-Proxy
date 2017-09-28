@@ -27,7 +27,7 @@ int setup_socket(struct sockaddr_in *serv_addr, char const *ip, int port)
   memset(serv_addr, '0', sizeof(*serv_addr));
   serv_addr->sin_family = AF_INET;
   serv_addr->sin_port = htons(port);
-  serv_addr->sin_addr.s_addr = inet_addr(ip);         
+  serv_addr->sin_addr.s_addr = inet_addr(ip);//         
 
   return sock;
 }
@@ -136,41 +136,47 @@ int main(int argc, char const *argv[])
   int sock = setup_socket(&serv_addr, ip, port_sproxy);
   printf("- socket for sproxy open\n");
 
+  printf("Listening for client connect request\n");
+  //bind_and_listen(sock, &serv_addr, 5);
+  connect_to_server(&serv_addr, sock);
+  printf("- connected to client\n");
+
   printf("Setting up socket for telnet\n");
   struct sockaddr_in addr_telnet;
   int sock_telnet = setup_socket(&addr_telnet, "127.0.0.1", port_telnet);
   printf("- socket for telnet open\n");
 
   // Connect to Server
-  printf("Sending connect request to sproxy\n");
+  //printf("Sending connect request to telnet\n");
   //connect_to_server(&serv_addr, sock);
-  connect_to_server(&addr_telnet, sock_telnet);
-  printf("- connected to sproxy\n");
+  //connect_to_server(&addr_telnet, sock_telnet);
+  //printf("- connected to telnet\n");
 
   // Connect with Telnet
-  /*printf("Listening for telnet connect request\n");
-    bind_and_listen(sock_telnet, &addr_telnet, 5);
-    printf("- connected to telnet\n");
-  */
+  printf("Listening for telnet connect request\n");
+  bind_and_listen(sock_telnet, &addr_telnet, 5);
+  //connect_to_server(&addr_telnet, sock_telnet);
+  printf("- connected to telnet\n");
+  
   //printf("Listening for daemon connect request\n");
   //sleep(10);
   //bind_and_listen(sock, &serv_addr, 5);
   //printf("- connected to daemon\n");
 
-  printf("Listening for telnet connect request\n");
-  bind_and_listen(sock, &serv_addr, 5);
-  printf("- connected to telnet\n");
+  //printf("Listening for client connect request\n");
+  //bind_and_listen(sock, &serv_addr, 5);
+  //printf("- connected to client\n");
   // Read Incoming Data from Telent and Send to Sproxy
   int new_socket = 0;
   int len1 = 0, len2 = 0;
   while(1){
     // Accept telnet
     printf("Accepting request from telnet\n");
-    s1 = accept_client(sock, &serv_addr);
+    s1 = accept_client(sock_telnet, &addr_telnet);
     printf("- telnet request accepted\n");
 
     // printf("Accepting request from daemon\n");
-    s2 = sock_telnet;
+    s2 = sock;
     //printf("- daemon request accepted\n");
 	
     while(1){
