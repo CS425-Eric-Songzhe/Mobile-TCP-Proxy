@@ -143,7 +143,8 @@ int main(int argc, char const *argv[])
 
   // Connect to Server
   printf("Sending connect request to sproxy\n");
-  connect_to_server(&serv_addr, sock);
+  //connect_to_server(&serv_addr, sock);
+  connect_to_server(&addr_telnet, sock_telnet);
   printf("- connected to sproxy\n");
 
   // Connect with Telnet
@@ -157,19 +158,19 @@ int main(int argc, char const *argv[])
   //printf("- connected to daemon\n");
 
   printf("Listening for telnet connect request\n");
-  bind_and_listen(sock_telnet, &addr_telnet, 5);
+  bind_and_listen(sock, &serv_addr, 5);
   printf("- connected to telnet\n");
   // Read Incoming Data from Telent and Send to Sproxy
   int new_socket = 0;
-  int len = 0;
+  int len1 = 0, len2 = 0;
   while(1){
     // Accept telnet
     printf("Accepting request from telnet\n");
-    s1 = accept_client(sock_telnet, &addr_telnet);
+    s1 = accept_client(sock, &serv_addr);
     printf("- telnet request accepted\n");
 
     // printf("Accepting request from daemon\n");
-    //s2 = accept_client(sock, &serv_addr);
+    s2 = sock_telnet;
     //printf("- daemon request accepted\n");
 	
     while(1){
@@ -197,14 +198,15 @@ int main(int argc, char const *argv[])
       }else {
 		// one or both of the descriptors have data
 		if (FD_ISSET(s1, &readfds)) {
-		  recv(s1, cmd_buf, sizeof(cmd_buf), 0);
+		  len1 = recv(s1, cmd_buf, sizeof(cmd_buf), 0);
 		  printf("Recved command from telnet: %s\n", cmd_buf);
-		  send(sock, cmd_buf, strlen(cmd_buf), 0);
+		  send(s2, cmd_buf, len1, 0);
 		  memset(cmd_buf, 0, sizeof(cmd_buf));
 		}
 		if (FD_ISSET(s2, &readfds)) {
-		  recv(s2, reply_buf, sizeof(reply_buf), 0);
+		  len2 = recv(s2, reply_buf, sizeof(reply_buf), 0);
 		  printf("Recved reply from server: %s\n", reply_buf);
+	          send(s1, reply_buf, len2, 0);
 		  memset(reply_buf, 0, sizeof(reply_buf));
 		}
       }	
