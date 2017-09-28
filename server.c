@@ -144,7 +144,7 @@ int main(int argc, char const *argv[])
   //connect_to_telnet(&daemon_address, server_teldaemon);
 
   // Forcefully attaching socket to port
-  //	bind_and_listen(server_fd, &address, 5);
+  //bind_and_listen(server_teldaemon, &daemon_address, 5);
   connect_to_telnet(&daemon_address, server_teldaemon);
   //bind_and_listen(server_teldaemon, &daemon_address, 1);	
 
@@ -158,7 +158,7 @@ int main(int argc, char const *argv[])
 	s1 = accept_client(server_fd, &address);
 	s2 = server_teldaemon;
 	printf("- Accepted\n");
-
+	int len1=0, len2=0;
 	//printf("Accepting from daemon\n");
 	//s2 = accept_client(server_teldaemon, &daemon_address);
 	//printf("- Accepted\n");
@@ -188,16 +188,16 @@ int main(int argc, char const *argv[])
 	  }else {
 		// one or both of the descriptors have data
 		if (FD_ISSET(s1, &readfds)) {
-		  recv(s1, cmd_buf, sizeof(cmd_buf), 0);
+		  len1 = recv(s1, cmd_buf, sizeof(cmd_buf), 0);
 		  printf("Recved command from cproxy: %s\n", cmd_buf);
-		  send(s2, cmd_buf, strlen(cmd_buf), 0);
+		  send(s2, cmd_buf, len1, 0);
 		  memset(cmd_buf, 0, sizeof(cmd_buf));
 		}
 		if (FD_ISSET(s2, &readfds)) {
-		  recv(s2, reply_buf, sizeof(reply_buf), 0);
+		  len2 = recv(s2, reply_buf, sizeof(reply_buf), 0);
 		  printf("Recved reply from daemon: %s\n", reply_buf);
 		  //TODO: Send to cproxy
-		  send(s1, reply_buf, strlen(reply_buf), 0);
+		  send(s1, reply_buf, len2, 0);
 		  memset(reply_buf, 0, sizeof(reply_buf));
 		}
       }
@@ -223,7 +223,7 @@ int main(int argc, char const *argv[])
 	close(s2);
   }
 	
-  close(server_fd);
+  //close(server_fd);
   //	close(server_teldaemon);
   return 0;
 }
