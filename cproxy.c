@@ -96,7 +96,7 @@ void bind_and_listen(int server_fd, struct sockaddr_in *address, int backlog)
       perror("listen");                 
       exit(EXIT_FAILURE);         
     }
-  printf("(bind&listen success on %d)\n", server_fd);  
+  //printf("(bind&listen success on %d)\n", server_fd);  
 }
 
 
@@ -127,53 +127,33 @@ int main(int argc, char const *argv[])
   int port_sproxy = atoi(argv[3]); // server port
   int port_telnet = atoi(argv[1]); // telnet port
 
-  // Create a buffer
-  //char buffer[1025]; // extra char for '\n'
-
   // Setup Sockets
-  printf("Setting up socket for sproxy\n");
+  //printf("Setting up socket for sproxy\n");
   struct sockaddr_in serv_addr;
   int sock = setup_socket(&serv_addr, ip, port_sproxy);
-  printf("- socket for sproxy open\n");
+  //  printf("- socket for sproxy open\n");
 
-  printf("Listening for client connect request\n");
-  //bind_and_listen(sock, &serv_addr, 5);
+  //printf("Listening for client connect request\n");
   connect_to_server(&serv_addr, sock);
-  printf("- connected to client\n");
+  //printf("- connected to client\n");
 
-  printf("Setting up socket for telnet\n");
+  //printf("Setting up socket for telnet\n");
   struct sockaddr_in addr_telnet;
   int sock_telnet = setup_socket(&addr_telnet, "127.0.0.1", port_telnet);
-  printf("- socket for telnet open\n");
+  //printf("- socket for telnet open\n");
 
-  // Connect to Server
-  //printf("Sending connect request to telnet\n");
-  //connect_to_server(&serv_addr, sock);
+  // Connect with Telnet
+  //printf("Listening for telnet connect request\n");
+  bind_and_listen(sock_telnet, &addr_telnet, 5);
   //connect_to_server(&addr_telnet, sock_telnet);
   //printf("- connected to telnet\n");
 
-  // Connect with Telnet
-  printf("Listening for telnet connect request\n");
-  bind_and_listen(sock_telnet, &addr_telnet, 5);
-  //connect_to_server(&addr_telnet, sock_telnet);
-  printf("- connected to telnet\n");
-  
-  //printf("Listening for daemon connect request\n");
-  //sleep(10);
-  //bind_and_listen(sock, &serv_addr, 5);
-  //printf("- connected to daemon\n");
-
-  //printf("Listening for client connect request\n");
-  //bind_and_listen(sock, &serv_addr, 5);
-  //printf("- connected to client\n");
-  // Read Incoming Data from Telent and Send to Sproxy
-  //int new_socket = 0;
   int len1 = 0, len2 = 0;
   while(1){
     // Accept telnet
-    printf("Accepting request from telnet\n");
+    //printf("Accepting request from telnet\n");
     s1 = accept_client(sock_telnet, &addr_telnet);
-    printf("- telnet request accepted\n");
+    //printf("- telnet request accepted\n");
 
     // printf("Accepting request from daemon\n");
     s2 = sock;
@@ -200,56 +180,28 @@ int main(int argc, char const *argv[])
       if (rv == -1) {
 		perror("select"); // error occurred in select()
       } else if (rv == 0) {
-		printf("Timeout occurred!  No data after 10.5 seconds.\n");
+	;//printf("Timeout occurred!  No data after 10.5 seconds.\n");
       }else {
 		// one or both of the descriptors have data
 		if (FD_ISSET(s1, &readfds)) {
 		  len1 = recv(s1, cmd_buf, sizeof(cmd_buf), 0);
-		  printf("Recved command from telnet: %s\n", cmd_buf);
+		  //printf("Recved command from telnet: %s\n", cmd_buf);
 		  send(s2, cmd_buf, len1, 0);
 		  memset(cmd_buf, 0, sizeof(cmd_buf));
 		}
 		if (FD_ISSET(s2, &readfds)) {
 		  len2 = recv(s2, reply_buf, sizeof(reply_buf), 0);
-		  printf("Recved reply from server: %s\n", reply_buf);
+		  //printf("Recved reply from server: %s\n", reply_buf);
 	          send(s1, reply_buf, len2, 0);
 		  memset(reply_buf, 0, sizeof(reply_buf));
 		}
       }	
-      // Receive messages from new_socket
-      /*while((len=recv(new_socket, buffer, sizeof(buffer), 0)) > 0){
-		printf("Received message from telnet \n");
-		printf("%s",buffer);
-		send(sock, buffer, strlen(buffer), 0);
-		}
-		if(len == 0)
-		printf("Nothing more from telnet. Telnet has closed.\n");
-		if(len < 0)
-		printf("ERROR on RECV()!\n");*/
-    }
+  
+  }
     close(s1);
     close(s2);
   }
-		
-  //read input from stdin
-  //while(fgets(buffer, sizeof(buffer), stdin) != NULL){
-  //  remove_last_char(buffer); // strips \n char
-	    
-  // get length as 4-byte long
-  // long len = strlen(buffer); // num bytes in payload
-  //if(len == 0) // enures a blank message is not sent
-  //  continue; 
-
-  // make and send message 
-  //char msg[4+len]; // make room for int (payload size)
-  //make_msg(msg, len, buffer);
-  //send(sock_telnet, msg, 4+len, 0);
-  //}
-  //if(feof(stdin))
-  //  printf("Communication Sucessfully Terminated\n");
-  //else
-  //  printf("ERROR: Communication Interrupted\n");
-	  
-  //close(sock_telnet);    	
+  
+  close(sock_telnet);    	
   return 0;
 }

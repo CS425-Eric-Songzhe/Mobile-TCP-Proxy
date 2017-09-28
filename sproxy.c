@@ -76,7 +76,7 @@ void connect_to_telnet(struct sockaddr_in *serv_addr, int sock)
 	  perror("Connection Failed");
 	  exit(EXIT_FAILURE);
 	}
-  printf("telnet connected at: %d\n", sock);
+  //printf("telnet connected at: %d\n", sock);
 }
 
 
@@ -127,46 +127,34 @@ int main(int argc, char const *argv[])
   int port = atoi(argv[1]);
 
   // Setup Sockets
-  printf("Setting up socket for cproxy\n");
+  //printf("Setting up socket for cproxy\n");
   struct sockaddr_in address;
   int server_fd = setup_socket(&address, NULL, port);
-  printf("- socket for cproxy open\n");
+  //printf("- socket for cproxy open\n");
 
-  printf("Binding to port for cproxy.\n");
+  //printf("Binding to port for cproxy.\n");
   bind_and_listen(server_fd, &address, 5);
-  printf("- Bind to port for cproxy successed\n");
+  //printf("- Bind to port for cproxy successed\n");
 
-  printf("Setting up socket for telnet (daemon)\n");
+  //printf("Setting up socket for telnet (daemon)\n");
   struct sockaddr_in daemon_address;
   int server_teldaemon = setup_socket(&daemon_address, "127.0.0.1", 23);
-  printf("- socket for telnet (daemon) open\n");
-  // Connect with Telnet (Daemon)
-  //connect_to_telnet(&daemon_address, server_teldaemon);
+  //printf("- socket for telnet (daemon) open\n");
 
   // Forcefully attaching socket to port
-  //bind_and_listen(server_teldaemon, &daemon_address, 5);
   connect_to_telnet(&daemon_address, server_teldaemon);
-  //bind_and_listen(server_teldaemon, &daemon_address, 1);	
 
   // Client Loop	
-  //int new_socket = 0;
-  int len = 0;
-  //char buffer[1024] = {0};
   while(1){	
 	// Accept client
-	printf("Accepting from cProxy\n");
+	//printf("Accepting from cProxy\n");
 	s1 = accept_client(server_fd, &address);
 	s2 = server_teldaemon;
-	printf("- Accepted\n");
-	int len1=0, len2=0;
-	//printf("Accepting from daemon\n");
-	//s2 = accept_client(server_teldaemon, &daemon_address);
 	//printf("- Accepted\n");
-	//printf("A client connected!\n");
+	int len1=0, len2=0;
+
 	while(1){
 	  // Receive messages from new_socket
-	  //while((len=recv(s1, buffer, sizeof(buffer), 0)) > 0){
-	  //printf("%s\n",buffer);	   
 	  FD_ZERO(&readfds);                  
 	  // add our descriptors to the set
 	  FD_SET(s1, &readfds);
@@ -184,46 +172,35 @@ int main(int argc, char const *argv[])
 	  if (rv == -1) {                         
 		perror("select"); // error occurred in select()
 	  } else if (rv == 0) {
-		printf("Timeout occurred!  No data after 10.5 seconds.\n");
+	    ;//printf("Timeout occurred!  No data after 10.5 seconds.\n");
 	  }else {
 		// one or both of the descriptors have data
 		if (FD_ISSET(s1, &readfds)) {
 		  len1 = recv(s1, cmd_buf, sizeof(cmd_buf), 0);
-		  printf("Recved command from cproxy: %s\n", cmd_buf);
+		  //printf("Recved command from cproxy: %s\n", cmd_buf);
 		  send(s2, cmd_buf, len1, 0);
 		  memset(cmd_buf, 0, sizeof(cmd_buf));
 		}
 		if (FD_ISSET(s2, &readfds)) {
 		  len2 = recv(s2, reply_buf, sizeof(reply_buf), 0);
-		  printf("Recved reply from daemon: %s\n", reply_buf);
-		  //TODO: Send to cproxy
+		  //printf("Recved reply from daemon: %s\n", reply_buf);
 		  send(s1, reply_buf, len2, 0);
 		  memset(reply_buf, 0, sizeof(reply_buf));
 		}
       }
 
-	  // get and print payload length
-	  //printf("Received message from client: \n");
-	  //int paylen = get_length(buffer);
-	  //printf("%d\n", paylen);
 		       
-	  // get and print payload -- start 4 bytes in
-	  //int i=0;
-	  //for(i=4; i < 4+paylen; i++)
-	  //printf("%c",buffer[i]);
-	  //printf("\n\n");
-		       
-	}
+	}/*
 	if(len == 0)
 	  printf("Nothing more from the client. Client has been shut down.\n");
 	if(len < 0)
 	  printf("ERROR on RECV()!\n");
-	
+	 */
 	close(s1);
 	close(s2);
   }
 	
-  //close(server_fd);
-  //	close(server_teldaemon);
+  close(server_fd);
+  close(server_teldaemon);
   return 0;
 }
