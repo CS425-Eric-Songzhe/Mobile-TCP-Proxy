@@ -1,6 +1,6 @@
 //Description: Server side of the Moblie TCP Proxy project
-//Author: Eric Evans, Songzhe Zhu
-//Date: Sep 7 2017
+//Authors: Eric Evans, Songzhe Zhu
+//Date: Sep 29 2017
 #include <sys/select.h>
 #include <unistd.h> 
 #include <stdio.h> 

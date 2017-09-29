@@ -1,6 +1,6 @@
 //Description: Client side of the Moblie TCP Proxy project
-//Author: Eric Evans, Songzhe Zhu
-//Date: Sep 7 2017
+//Authors: Eric Evans, Songzhe Zhu
+//Date: Sep 29 2017
 #include <stdio.h>
 #include <arpa/inet.h>
 #include <sys/socket.h>
