@@ -1,6 +1,7 @@
 //Description: Server side of the Moblie TCP Proxy project
 //Authors: Eric Evans, Songzhe Zhu
 //Date: Sep 29 2017
+#include <sys/time.h>
 #include <time.h>
 #include <sys/select.h>
 #include <unistd.h>
@@ -53,7 +54,12 @@ int main(int argc, char const *argv[])
 	s2 = server_teldaemon;
 	//printf("- Accepted\n");
 	int len1 = 0, len2 = 0;
-	clock_t last_time=clock();
+
+	// Set up heartbeat time interval checking
+	struct timeval last, now;
+	gettimeofday(&last, NULL);
+	int hb_id = 0;
+
 	while (1) {
 	    // Receive messages from new_socket
 	    FD_ZERO(&readfds);
@@ -67,14 +73,20 @@ int main(int argc, char const *argv[])
 		n = s2 + 1;
 
 	    // wait until either socket has data ready to be recv()d (timeout 10.5 secs)                 
-	    tv.tv_sec = 10;
-	    tv.tv_usec = 500000;
+	    tv.tv_sec = 1;	//10;
+	    tv.tv_usec = 5;	//500000;
 	    rv = select(n, &readfds, NULL, NULL, &tv);
-	    
-	    if((double)(clock()-last_time)/CLOCKS_PER_SEC >= 1){
-	        //send heartbeat;
-		printf("HB\n");
-		last_time = clock();
+
+	    // Check if time to send heartbeat
+	    gettimeofday(&now, NULL);
+	    double diff = (now.tv_sec - last.tv_sec) +
+		((now.tv_usec - last.tv_usec) / 1000000.0);
+	    //printf("diff: %f\n", diff);
+	    if (diff >= 1) {
+		//send heartbeat;
+		printf("HB %d\n", hb_id);
+		gettimeofday(&last, NULL);
+		hb_id++;
 	    }
 
 	    if (rv == -1) {
@@ -85,15 +97,17 @@ int main(int argc, char const *argv[])
 		// one or both of the descriptors have data
 		//s1: cproxy
 		if (FD_ISSET(s1, &readfds)) {
+		    //printf("wait for cproxy\n");
 		    len1 = recv(s1, cmd_buf, sizeof(cmd_buf), 0);
-		    //printf("Recved command from cproxy: %s\n", cmd_buf);
+		    printf("Recved command from cproxy: %s\n", cmd_buf);
 		    send(s2, cmd_buf, len1, 0);
 		    memset(cmd_buf, 0, sizeof(cmd_buf));
 		}
 		//s2:telnet-daemon
 		if (FD_ISSET(s2, &readfds)) {
+		    //printf("wait for daemon\n");
 		    len2 = recv(s2, reply_buf, sizeof(reply_buf), 0);
-		    //printf("Recved reply from daemon: %s\n", reply_buf);
+		    printf("Recved reply from daemon: %s\n", reply_buf);
 		    send(s1, reply_buf, len2, 0);
 		    memset(reply_buf, 0, sizeof(reply_buf));
 		}
