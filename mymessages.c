@@ -1,48 +1,133 @@
+
 /*
  * Has functions for reading and writing messages with headers.
  */
 
+#include <stdio.h>
 #include <string.h>
+
+#define TEST_MSG 0
+
+
+/*                                                                                                    
+ * return the 4 bytes of buffer as an int at index
+ */
+int decode_int(char *buffer, int index)
+{
+
+    int num = 0;
+    num = buffer[index] << 24 |
+	(buffer[index + 1] & 0xFF) << 16 |
+	(buffer[index + 2] & 0xFF) << 8 | (buffer[index + 3] & 0xFF);
+
+    return num;
+}
+
+
+/*
+ * encode num into four bytes in msg at index
+ */
+void encode_int(long n, char *msg, int index)
+{
+
+    long num = (long) n;
+
+    msg[index] = (num >> 24) & 0xFF;
+    msg[index + 1] = (num >> 16) & 0xFF;
+    msg[index + 2] = (num >> 8) & 0xFF;
+    msg[index + 3] = num & 0xFF;
+
+}
+
 
 /*
  * prepend length of payload to payload. this is the message to be sent
  */
-void make_msg(char *msg, long len, char *input)
+int make_msg(char *msg, int type, int ackID, int sessionID, int paylen,
+	     char *payload)
 {
 
-    long n = len;
-    msg[0] = (n >> 24) & 0xFF;
-    msg[1] = (n >> 16) & 0xFF;
-    msg[2] = (n >> 8) & 0xFF;
-    msg[3] = n & 0xFF;
-    strncpy(&msg[4], input, len);
-    //printf("%d,%d:|%s|", (int)len, (int)strlen(msg), msg);
+    // Type - heartbeat or data
+    encode_int(type, msg, 0);
 
+    // AckID
+    encode_int(ackID, msg, 4);
+
+    // SessionID
+    encode_int(sessionID, msg, 8);
+
+    // Paylen
+    encode_int(paylen, msg, 12);
+
+    // Append Payload
+    strncpy(&msg[16], payload, paylen);
+
+    //printf("%s\n",&msg[16]);
+
+    return 16 + paylen;
 }
 
 
 /*
- * replace the last character with '\0'
+ * parse message and pull out fields type, ackID, sessionID, and payload
  */
-void remove_last_char(char *buffer)
+int parse_msg(char *msg, int *type, int *ackID, int *sessionID,
+	      char *payload)
 {
 
-    int len = strlen(buffer);
-    buffer[len - 1] = '\0';
+    // Type - heartbeat or data
+    *type = decode_int(msg, 0);
+
+    // AckID
+    *ackID = decode_int(msg, 4);
+
+    // SessionID
+    *sessionID = decode_int(msg, 8);
+
+    // Paylen
+    int paylen = decode_int(msg, 12);
+
+    // Payload
+    strncpy(payload, &msg[16], paylen);
+
+    return paylen;
 }
 
 
-/*                                                                                                                                      
- * return the first 4 bytes of buffer as an int                                                                                         
- */
-int get_length(char *buffer)
+#if TEST_MSG == 1
+int main(int argc, char const *argv[])
 {
 
-    int num = 0;
+    // Make Message
+    int type = 1;
+    int ackNum = 558;
+    int sessionID = 78;
+    char *payload = "Hello World!";
+    char msg[1025] = { 0 };
 
-    num = buffer[0] << 24 |
-	(buffer[1] & 0xff) << 16 |
-	(buffer[2] & 0xff) << 8 | (buffer[3] & 0xff);
+    int l =
+	make_msg(msg, type, ackNum, sessionID, strlen(payload), payload);
 
-    return num;
+    int i = 0;
+    for (i = 0; i < l; i++)
+	printf("%d", msg[i]);
+    printf("\n");
+
+    // Parse Message
+    char b_payload[1025] = { 0 };
+    int b_type = 0;
+    int b_ackNum = 0;
+    int b_sID = 0;
+
+    int len = parse_msg(msg, &b_type, &b_ackNum, &b_sID, b_payload);
+
+    // Compare
+    printf("%d|%d\n", type, b_type);
+    printf("%d|%d\n", ackNum, b_ackNum);
+    printf("%d|%d\n", sessionID, b_sID);
+    printf("%d|%d\n", (int) strlen(payload), len);
+    printf("%s|%s\n", payload, b_payload);
+
+    return 0;
 }
+#endif

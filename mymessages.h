@@ -1,19 +1,19 @@
 #ifndef MYMESSAGES_H_INCLUDED
 #define MYMESSAGES_H_INCLUDED
 
+
 /*
  * prepend length of payload to payload. this is the message to be sent
  */
-void make_msg(char *msg, long len, char *input);
+int make_msg(char *msg, int type, int ackID, int sessionID, int paylen,
+	     char *payload);
+
 
 /*
- * replace the last character with '\0'
+ * parse message and pull out fields type, ackID, sessionID, and payload
  */
-void remove_last_char(char *buffer);
+int parse_msg(char *msg, int *type, int *ackID, int *sessionID,
+	      char *payload);
 
-/*                                                                                                                                      
- * return the first 4 bytes of buffer as an int                                                                                         
- */
-int get_length(char *buffer);
 
 #endif
