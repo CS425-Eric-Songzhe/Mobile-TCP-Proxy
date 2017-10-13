@@ -27,7 +27,7 @@ int decode_int(char *buffer, int index)
 /*
  * encode num into four bytes in msg at index
  */
-void encode_int(long n, char *msg, int index)
+void encode_int(int n, char *msg, int index)
 {
 
     long num = (long) n;
