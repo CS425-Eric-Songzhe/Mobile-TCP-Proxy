@@ -1,6 +1,8 @@
 //Description: Client side of the Moblie TCP Proxy project
 //Authors: Eric Evans, Songzhe Zhu
 //Date: Sep 29 2017
+#include <sys/time.h>
+#include <time.h>
 #include <stdio.h>
 #include <arpa/inet.h>
 #include <sys/socket.h>
@@ -50,7 +52,7 @@ int main(int argc, char const *argv[])
     //connect_to_server(&addr_telnet, sock_telnet);
     //printf("- connected to telnet\n");
 
-    int len1 = 0, len2 = 0;
+    int len1 = 0;		//, len2 = 0;
     while (1) {
 	// Accept telnet
 	//printf("Accepting request from telnet\n");
@@ -61,6 +63,11 @@ int main(int argc, char const *argv[])
 	s2 = sock;
 	//printf("- daemon request accepted\n");
 
+	// Set up heartbeat time interval checking
+        struct timeval last, now;
+        gettimeofday(&last, NULL);
+        int hb_sent = 0;
+	int hb_recv = 0;
 	while (1) {
 	    // clear the set ahead of time
 	    FD_ZERO(&readfds);
@@ -76,10 +83,29 @@ int main(int argc, char const *argv[])
 		n = s2 + 1;
 
 
-	    // wait until either socket has data ready to be recv()d (timeout 10.5 secs)
-	    tv.tv_sec = 10;
+	    // wait until either socket has data ready to be recv()d (timeout 1.5 secs)
+	    tv.tv_sec = 1;
 	    tv.tv_usec = 500000;
 	    rv = select(n, &readfds, NULL, NULL, &tv);
+
+	    // Check if time to send heartbeat    
+            gettimeofday(&now, NULL);
+            double diff = (now.tv_sec - last.tv_sec) +
+	      ((now.tv_usec - last.tv_usec) / 1000000.0);
+            //printf("diff: %f\n", diff);   
+            if (diff >= 1) {
+	      //send heartbeat;                                                                                                       
+	      char msg[512] = { 0 };
+	      char *payload = " ";
+                int msg_len =
+		  make_msg(msg, HEARTBEAT, hb_sent, 1010,
+			   strlen(payload), payload);
+                //send(s2, msg, msg_len, 0);
+                printf("print HB %d\n", hb_sent);
+                gettimeofday(&last, NULL);
+                hb_sent++;
+            }
+
 
 	    if (rv == -1) {
 		perror("select");	// error occurred in select()
@@ -87,16 +113,39 @@ int main(int argc, char const *argv[])
 		;		//printf("Timeout occurred!  No data after 10.5 seconds.\n");
 	    } else {
 		// one or both of the descriptors have data
+		// s1: Telnet
 		if (FD_ISSET(s1, &readfds)) {
 		    len1 = recv(s1, cmd_buf, sizeof(cmd_buf), 0);
 		    //printf("Recved command from telnet: %s\n", cmd_buf);
 		    send(s2, cmd_buf, len1, 0);
 		    memset(cmd_buf, 0, sizeof(cmd_buf));
 		}
+		// s2: Sproxy
 		if (FD_ISSET(s2, &readfds)) {
-		    len2 = recv(s2, reply_buf, sizeof(reply_buf), 0);
-		    //printf("Recved reply from server: %s\n", reply_buf);
-		    send(s1, reply_buf, len2, 0);
+		    recv(s2, reply_buf, sizeof(reply_buf), 0);
+		    //printf("Received reply from sproxy: %s\n", reply_buf);
+		    int type = -1;
+		    int ackID = -1;
+		    int sessionID = -1;
+		    char payload[1025] = { 0 };
+		    int paylen =
+			parse_msg(reply_buf, &type, &ackID, &sessionID,
+				  payload);
+
+		    // If message is heartbeat, just record
+		    if (type == HEARTBEAT) {
+			printf("Received HB (%d) from %d\n", ackID,
+			       sessionID);
+			hb_recv++;
+		    }
+		    // else, if message is data, send payload
+		    else if (type == DATA) {
+			printf("Recieved Data from %d\n", sessionID);
+			send(s1, payload, paylen, 0);
+		    } else {
+			printf("ERROR: unknown message type\n");
+		    }
+
 		    memset(reply_buf, 0, sizeof(reply_buf));
 		}
 	    }

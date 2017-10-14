@@ -58,7 +58,7 @@ int main(int argc, char const *argv[])
 	// Set up heartbeat time interval checking
 	struct timeval last, now;
 	gettimeofday(&last, NULL);
-	int hb_id = 0;
+	int hb_sent = 0;
 
 	while (1) {
 	    // Receive messages from new_socket
@@ -72,7 +72,7 @@ int main(int argc, char const *argv[])
 	    else
 		n = s2 + 1;
 
-	    // wait until either socket has data ready to be recv()d (timeout 10.5 secs)                 
+	    // wait until either socket has data ready to be recv()d (timeout 1.5 secs)                 
 	    tv.tv_sec = 1;	//10;
 	    tv.tv_usec = 5;	//500000;
 	    rv = select(n, &readfds, NULL, NULL, &tv);
@@ -84,9 +84,15 @@ int main(int argc, char const *argv[])
 	    //printf("diff: %f\n", diff);
 	    if (diff >= 1) {
 		//send heartbeat;
-		printf("HB %d\n", hb_id);
+		char msg[512] = { 0 };
+		char *payload = " ";
+		int msg_len =
+		    make_msg(msg, HEARTBEAT, hb_sent, 1010,
+			     strlen(payload), payload);
+		send(s1, msg, msg_len, 0);
+		printf("send HB %d\n", hb_sent);
 		gettimeofday(&last, NULL);
-		hb_id++;
+		hb_sent++;
 	    }
 
 	    if (rv == -1) {
@@ -99,7 +105,7 @@ int main(int argc, char const *argv[])
 		if (FD_ISSET(s1, &readfds)) {
 		    //printf("wait for cproxy\n");
 		    len1 = recv(s1, cmd_buf, sizeof(cmd_buf), 0);
-		    printf("Recved command from cproxy: %s\n", cmd_buf);
+		    //printf("Recved command from cproxy: %s\n", cmd_buf);
 		    send(s2, cmd_buf, len1, 0);
 		    memset(cmd_buf, 0, sizeof(cmd_buf));
 		}
@@ -107,8 +113,13 @@ int main(int argc, char const *argv[])
 		if (FD_ISSET(s2, &readfds)) {
 		    //printf("wait for daemon\n");
 		    len2 = recv(s2, reply_buf, sizeof(reply_buf), 0);
-		    printf("Recved reply from daemon: %s\n", reply_buf);
-		    send(s1, reply_buf, len2, 0);
+		    //printf("Recved reply from daemon: %s\n", reply_buf);
+
+		    char msg[1025] = { 0 };
+		    int msg_len =
+			make_msg(msg, DATA, 0, 1010, len2, reply_buf);
+
+		    send(s1, msg, msg_len, 0);
 		    memset(reply_buf, 0, sizeof(reply_buf));
 		}
 	    }

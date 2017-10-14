@@ -1,6 +1,9 @@
 #ifndef MYMESSAGES_H_INCLUDED
 #define MYMESSAGES_H_INCLUDED
 
+#define HEARTBEAT 0
+#define DATA 1
+
 
 /*
  * prepend length of payload to payload. this is the message to be sent
