@@ -59,6 +59,7 @@ int main(int argc, char const *argv[])
 	struct timeval last, now;
 	gettimeofday(&last, NULL);
 	int hb_sent = 0;
+	int hb_recv = 0;
 
 	while (1) {
 	    // Receive messages from new_socket
@@ -84,12 +85,11 @@ int main(int argc, char const *argv[])
 	    //printf("diff: %f\n", diff);
 	    if (diff >= 1) {
 		//send heartbeat;
-		char msg[512] = { 0 };
-		char *payload = " ";
-		int msg_len =
-		    make_msg(msg, HEARTBEAT, hb_sent, 1010,
-			     strlen(payload), payload);
-		send(s1, msg, msg_len, 0);
+		char msg_HB[512] = { 0 };
+		char *payload_HB = " ";
+		int msg_len_HB = make_msg(msg_HB, HEARTBEAT, hb_sent, 1010,
+				       sizeof(payload_HB), payload_HB);
+		send(s1, msg_HB, msg_len_HB, 0);
 		printf("send HB %d\n", hb_sent);
 		gettimeofday(&last, NULL);
 		hb_sent++;
@@ -104,22 +104,43 @@ int main(int argc, char const *argv[])
 		//s1: cproxy
 		if (FD_ISSET(s1, &readfds)) {
 		    //printf("wait for cproxy\n");
-		    len1 = recv(s1, cmd_buf, sizeof(cmd_buf), 0);
+		    recv(s1, cmd_buf, sizeof(cmd_buf), 0);
+		    int type = -1;
+		    int ackID = -1;
+		    int sessionID = -1;
+		    char payload_c[1025] = { 0 };
+		    int paylen_c =
+			parse_msg(cmd_buf, &type, &ackID, &sessionID,
+				  payload_c);
+		    // If message is heartbeat, just record
+		    if (type == HEARTBEAT) {
+			printf("Received HB (%d) from %d\n", ackID,
+			       sessionID);
+			hb_recv++;
+		    }
+		    // else, if message is data, send payload
+		    else if (type == DATA) {
+			printf("Recieved Data from %d\n", sessionID);
+			printf("Recved command from cproxy: %s\n, %d\n", cmd_buf, paylen_c);
+			send(s2, payload_c, paylen_c, 0);
+		    } else {
+			printf("ERROR: unknown message type\n");
+		    }
 		    //printf("Recved command from cproxy: %s\n", cmd_buf);
-		    send(s2, cmd_buf, len1, 0);
+		    //send(s2, cmd_buf, len1, 0);
 		    memset(cmd_buf, 0, sizeof(cmd_buf));
 		}
 		//s2:telnet-daemon
 		if (FD_ISSET(s2, &readfds)) {
 		    //printf("wait for daemon\n");
 		    len2 = recv(s2, reply_buf, sizeof(reply_buf), 0);
-		    //printf("Recved reply from daemon: %s\n", reply_buf);
+		    printf("Recved reply from daemon: %s\n, %d\n", reply_buf, len2);
 
-		    char msg[1025] = { 0 };
-		    int msg_len =
-			make_msg(msg, DATA, 0, 1010, len2, reply_buf);
+		    char msg_d[1025] = { 0 };
+		    int msg_len_d =
+			make_msg(msg_d, DATA, 0, 1010, len2, reply_buf);
 
-		    send(s1, msg, msg_len, 0);
+		    send(s1, msg_d, msg_len_d, 0);
 		    memset(reply_buf, 0, sizeof(reply_buf));
 		}
 	    }

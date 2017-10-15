@@ -64,9 +64,9 @@ int main(int argc, char const *argv[])
 	//printf("- daemon request accepted\n");
 
 	// Set up heartbeat time interval checking
-        struct timeval last, now;
-        gettimeofday(&last, NULL);
-        int hb_sent = 0;
+	struct timeval last, now;
+	gettimeofday(&last, NULL);
+	int hb_sent = 0;
 	int hb_recv = 0;
 	while (1) {
 	    // clear the set ahead of time
@@ -89,22 +89,21 @@ int main(int argc, char const *argv[])
 	    rv = select(n, &readfds, NULL, NULL, &tv);
 
 	    // Check if time to send heartbeat    
-            gettimeofday(&now, NULL);
-            double diff = (now.tv_sec - last.tv_sec) +
-	      ((now.tv_usec - last.tv_usec) / 1000000.0);
-            //printf("diff: %f\n", diff);   
-            if (diff >= 1) {
-	      //send heartbeat;                                                                                                       
-	      char msg[512] = { 0 };
-	      char *payload = " ";
-                int msg_len =
-		  make_msg(msg, HEARTBEAT, hb_sent, 1010,
-			   strlen(payload), payload);
-                //send(s2, msg, msg_len, 0);
-                printf("print HB %d\n", hb_sent);
-                gettimeofday(&last, NULL);
-                hb_sent++;
-            }
+	    gettimeofday(&now, NULL);
+	    double diff = (now.tv_sec - last.tv_sec) +
+		((now.tv_usec - last.tv_usec) / 1000000.0);
+	    //printf("diff: %f\n", diff);   
+	    if (diff >= 1) {
+		//send heartbeat;                                                                                                       
+		char msg[512] = { 0 };
+		char *payload = " ";
+		int msg_len = make_msg(msg, HEARTBEAT, hb_sent, 1010,
+				       strlen(payload), payload);
+		//send(s2, msg, msg_len, 0);
+		printf("print HB %d\n", hb_sent);
+		gettimeofday(&last, NULL);
+		hb_sent++;
+	    }
 
 
 	    if (rv == -1) {
