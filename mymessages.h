@@ -1,7 +1,7 @@
 #ifndef MYMESSAGES_H_INCLUDED
 #define MYMESSAGES_H_INCLUDED
 
-#define HEARTBEAT 0
+#define HEARTBEAT 2
 #define DATA 1
 
 

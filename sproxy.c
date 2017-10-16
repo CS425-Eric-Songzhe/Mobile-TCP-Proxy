@@ -21,10 +21,10 @@
  */
 int main(int argc, char const *argv[])
 {
-    int s1 = 0, s2 = 0, n = 0, rv = 0;
+    int s1 = 0, s2 = 0, n = 0, rv = 0, sessionID = -1;
     fd_set readfds;
     struct timeval tv;
-    char cmd_buf[1025], reply_buf[1025];
+    char cmd_buf[9999], reply_buf[9999];
     // Read Arguments
     int port = atoi(argv[1]);
 
@@ -53,13 +53,14 @@ int main(int argc, char const *argv[])
 	s1 = accept_client(server_fd, &address);
 	s2 = server_teldaemon;
 	//printf("- Accepted\n");
-	int len1 = 0, len2 = 0;
+	int /*len1 = 0,*/ len2 = 0;
 
 	// Set up heartbeat time interval checking
-	struct timeval last, now;
+	struct timeval last, now, hb_time;
 	gettimeofday(&last, NULL);
 	int hb_sent = 0;
 	int hb_recv = 0;
+	int last_hb = -1;
 
 	while (1) {
 	    // Receive messages from new_socket
@@ -85,15 +86,30 @@ int main(int argc, char const *argv[])
 	    //printf("diff: %f\n", diff);
 	    if (diff >= 1) {
 		//send heartbeat;
-		char msg_HB[512] = { 0 };
+		char msg_HB[9999] = { 0 };
 		char *payload_HB = " ";
-		int msg_len_HB = make_msg(msg_HB, HEARTBEAT, hb_sent, 1010,
-				       sizeof(payload_HB), payload_HB);
+		int msg_len_HB =
+		    make_msg(msg_HB, HEARTBEAT, hb_sent, sessionID,
+			     sizeof(payload_HB), payload_HB);
 		send(s1, msg_HB, msg_len_HB, 0);
 		printf("send HB %d\n", hb_sent);
 		gettimeofday(&last, NULL);
 		hb_sent++;
 	    }
+
+	    // Detect if timeout by heartbeat
+	    if (last_hb >= 0){
+	    	gettimeofday(&now, NULL);
+	    	double diff_hb =
+			(now.tv_sec - hb_time.tv_sec) +
+			((now.tv_usec - hb_time.tv_usec) / 1000000.0);
+	    	if (diff_hb >= 3 /*&& sessionID > 0*/) {
+			printf("HB Timeout occured\n");
+			printf("Socket to cproxy closed.\n");
+			break;
+	    	}
+	    }	
+
 
 	    if (rv == -1) {
 		perror("select");	// error occurred in select()
@@ -107,24 +123,37 @@ int main(int argc, char const *argv[])
 		    recv(s1, cmd_buf, sizeof(cmd_buf), 0);
 		    int type = -1;
 		    int ackID = -1;
-		    int sessionID = -1;
-		    char payload_c[1025] = { 0 };
+		    int sessionID_C = -1;
+		    char payload_c[9999] = { 0 };
 		    int paylen_c =
-			parse_msg(cmd_buf, &type, &ackID, &sessionID,
+			parse_msg(cmd_buf, &type, &ackID, &sessionID_C,
 				  payload_c);
+		    if (sessionID != sessionID_C) {
+			printf("New session ID: change %d to %d\n",
+			       sessionID, sessionID_C);
+			sessionID = sessionID_C;
+		    }
 		    // If message is heartbeat, just record
 		    if (type == HEARTBEAT) {
+			//if (ackID != 0)
 			printf("Received HB (%d) from %d\n", ackID,
-			       sessionID);
+			       		sessionID_C);
+			//hb_recv++;
+			//if (ackID != last_hb) {
+				// record time of this heartbeat
+			gettimeofday(&hb_time, NULL);    
+			//last_hb = ackID;
+			//}
 			hb_recv++;
+			last_hb++;
 		    }
-		    // else, if message is data, send payload
 		    else if (type == DATA) {
-			printf("Recieved Data from %d\n", sessionID);
-			printf("Recved command from cproxy: %s\n, %d\n", cmd_buf, paylen_c);
+			printf("Recieved Data from %d\n", sessionID_C);
+			//printf("Recved command from cproxy: %s\n, %d\n", cmd_buf, paylen_c);
 			send(s2, payload_c, paylen_c, 0);
 		    } else {
-			printf("ERROR: unknown message type\n");
+			//printf("ERROR: unknown message type\n");
+			;
 		    }
 		    //printf("Recved command from cproxy: %s\n", cmd_buf);
 		    //send(s2, cmd_buf, len1, 0);
@@ -136,9 +165,10 @@ int main(int argc, char const *argv[])
 		    len2 = recv(s2, reply_buf, sizeof(reply_buf), 0);
 		    printf("Recved reply from daemon: %s\n, %d\n", reply_buf, len2);
 
-		    char msg_d[1025] = { 0 };
+		    char msg_d[9999] = { 0 };
 		    int msg_len_d =
-			make_msg(msg_d, DATA, 0, 1010, len2, reply_buf);
+			make_msg(msg_d, DATA, 0, sessionID, len2,
+				 reply_buf);
 
 		    send(s1, msg_d, msg_len_d, 0);
 		    memset(reply_buf, 0, sizeof(reply_buf));
@@ -153,9 +183,9 @@ int main(int argc, char const *argv[])
 				   printf("ERROR on RECV()!\n");
 				 */
 	close(s1);
-	close(s2);
+	//close(s2);
     }
-
+    close(s2);
     close(server_fd);
     close(server_teldaemon);
     return 0;
