@@ -62,7 +62,7 @@ int make_msg(char *msg, int type, int ackID, int sessionID, int paylen,
     // Append Payload
     memcpy(&msg[16], payload, paylen);
 
-    //printf("%s\n",&msg[16]);
+    printf("Make data: %s\n",&msg[16]);
 
     return 16 + paylen;
 }
@@ -87,8 +87,12 @@ int parse_msg(char *msg, int *type, int *ackID, int *sessionID,
     // Paylen
     int paylen = decode_int(msg, 12);
 
+    printf("Recv data: %s\n", &msg[16]);
+
     // Payload
     memcpy(payload, &msg[16], paylen);
+
+    printf("After parse, payload is: %s\n", payload);
 
     return paylen;
 }

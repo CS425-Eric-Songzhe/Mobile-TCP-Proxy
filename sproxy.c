@@ -30,12 +30,12 @@ int main(int argc, char const *argv[])
 
     // Setup Sockets
     //printf("Setting up socket for cproxy\n");
-    struct sockaddr_in address;
-    int server_fd = setup_socket(&address, NULL, port);
+    //struct sockaddr_in address;
+    //int server_fd = setup_socket(&address, NULL, port);
     //printf("- socket for cproxy open\n");
 
     //printf("Binding to port for cproxy.\n");
-    bind_and_listen(server_fd, &address, 5);
+    //bind_and_listen(server_fd, &address, 5);
     //printf("- Bind to port for cproxy successed\n");
 
     //printf("Setting up socket for telnet (daemon)\n");
@@ -48,6 +48,25 @@ int main(int argc, char const *argv[])
 
     // Client Loop        
     while (1) {
+	// Setup Sockets
+    	printf("Setting up socket for cproxy\n");
+    	struct sockaddr_in address;
+    	int server_fd = setup_socket(&address, NULL, port);
+    	printf("- socket:%d for cproxy open\n", server_fd);
+
+	// Forcefully attaching socket to the port 8080
+	int opt = 1;
+    	if (setsockopt(server_fd, SOL_SOCKET, SO_REUSEADDR | SO_REUSEPORT,
+                                                  &opt, sizeof(opt)))
+    	{
+        	perror("setsockopt");
+        	exit(EXIT_FAILURE);
+    	}
+
+    	printf("Binding to port for cproxy.\n");
+    	bind_and_listen(server_fd, &address, 5);
+    	printf("- Bind to port for cproxy successed\n");
+
 	// Accept client
 	//printf("Accepting from cProxy\n");
 	s1 = accept_client(server_fd, &address);
@@ -133,6 +152,9 @@ int main(int argc, char const *argv[])
 			       sessionID, sessionID_C);
 			sessionID = sessionID_C;
 		    }
+		    else{
+			printf("Reconnected with: %d\n", sessionID_C);
+		    }	
 		    // If message is heartbeat, just record
 		    if (type == HEARTBEAT) {
 			//if (ackID != 0)
@@ -184,9 +206,10 @@ int main(int argc, char const *argv[])
 				 */
 	close(s1);
 	//close(s2);
+	close(server_fd);
     }
     close(s2);
-    close(server_fd);
+    //close(server_fd);
     close(server_teldaemon);
     return 0;
 }
