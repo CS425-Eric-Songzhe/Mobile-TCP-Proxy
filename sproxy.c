@@ -19,9 +19,9 @@
 /*
  * MAIN
  */
-int main(int argc, char const *argv[])
-{
-    int s1 = 0, s2 = 0, n = 0, rv = 0, sessionID = -1;
+int main(int argc, char const *argv[]){
+
+    int s1_cproxy = 0, s2_daemon = 0, n = 0, rv = 0, sessionID = -1;
     fd_set readfds;
     struct timeval tv;
     char cmd_buf[9999], reply_buf[9999];
@@ -69,8 +69,8 @@ int main(int argc, char const *argv[])
 
 	// Accept client
 	//printf("Accepting from cProxy\n");
-	s1 = accept_client(server_fd, &address);
-	s2 = server_teldaemon;
+	s1_cproxy = accept_client(server_fd, &address);
+	s2_daemon = server_teldaemon;
 	//printf("- Accepted\n");
 	int /*len1 = 0,*/ len2 = 0;
 
@@ -82,16 +82,17 @@ int main(int argc, char const *argv[])
 	int last_hb = -1;
 
 	while (1) {
+	  printf("---------------------------------------\n");
 	    // Receive messages from new_socket
 	    FD_ZERO(&readfds);
 	    // add our descriptors to the set
-	    FD_SET(s1, &readfds);
-	    FD_SET(s2, &readfds);
+	    FD_SET(s1_cproxy, &readfds);
+	    FD_SET(s2_daemon, &readfds);
 	    // find the largest descriptor, and plus one.
-	    if (s1 > s2)
-		n = s1 + 1;
+	    if (s1_cproxy > s2_daemon)
+		n = s1_cproxy + 1;
 	    else
-		n = s2 + 1;
+		n = s2_daemon + 1;
 
 	    // wait until either socket has data ready to be recv()d (timeout 1.5 secs)                 
 	    tv.tv_sec = 1;	//10;
@@ -110,7 +111,7 @@ int main(int argc, char const *argv[])
 		int msg_len_HB =
 		    make_msg(msg_HB, HEARTBEAT, hb_sent, sessionID,
 			     sizeof(payload_HB), payload_HB);
-		send(s1, msg_HB, msg_len_HB, 0);
+		send(s1_cproxy, msg_HB, msg_len_HB, 0);
 		printf("send HB %d\n", hb_sent);
 		gettimeofday(&last, NULL);
 		hb_sent++;
@@ -136,10 +137,10 @@ int main(int argc, char const *argv[])
 		;		//printf("Timeout occurred!  No data after 10.5 seconds.\n");
 	    } else {
 		// one or both of the descriptors have data
-		//s1: cproxy
-		if (FD_ISSET(s1, &readfds)) {
+		//s1_cproxy: cproxy
+		if (FD_ISSET(s1_cproxy, &readfds)) {
 		    //printf("wait for cproxy\n");
-		    recv(s1, cmd_buf, sizeof(cmd_buf), 0);
+		    recv(s1_cproxy, cmd_buf, sizeof(cmd_buf), 0);
 		    int type = -1;
 		    int ackID = -1;
 		    int sessionID_C = -1;
@@ -172,27 +173,39 @@ int main(int argc, char const *argv[])
 		    else if (type == DATA) {
 			printf("Recieved Data from %d\n", sessionID_C);
 			//printf("Recved command from cproxy: %s\n, %d\n", cmd_buf, paylen_c);
-			send(s2, payload_c, paylen_c, 0);
-		    } else {
+			send(s2_daemon, payload_c, paylen_c, 0);
+		    } 
+		    else if (type == ACK){
+		      printf("Recvd Acknowledgement from %d, %d\n", sessionID_C, ackID);
+		    }
+		    else {
 			//printf("ERROR: unknown message type\n");
 			;
 		    }
 		    //printf("Recved command from cproxy: %s\n", cmd_buf);
-		    //send(s2, cmd_buf, len1, 0);
+		    //send(s2_daemon, cmd_buf, len1, 0);
 		    memset(cmd_buf, 0, sizeof(cmd_buf));
 		}
-		//s2:telnet-daemon
-		if (FD_ISSET(s2, &readfds)) {
+		//s2_daemon:telnet-daemon
+		if (FD_ISSET(s2_daemon, &readfds)) {
 		    //printf("wait for daemon\n");
-		    len2 = recv(s2, reply_buf, sizeof(reply_buf), 0);
+		    len2 = recv(s2_daemon, reply_buf, sizeof(reply_buf), 0);
 		    printf("Recved reply from daemon: %s\n, %d\n", reply_buf, len2);
+		    // Send Acknowledgment
+		    char msg_ack[9999] = { 0 };
+		    char *ack_str = "ack";
+		    int msg_len_ack = 
+		      make_msg(msg_ack, ACK, 0, sessionID, strlen(ack_str), ack_str);
+		    send(s1_cproxy, msg_ack, msg_len_ack, 0);
+		    printf("sent acknow\n");
 
+		    // make message
 		    char msg_d[9999] = { 0 };
 		    int msg_len_d =
 			make_msg(msg_d, DATA, 0, sessionID, len2,
 				 reply_buf);
 
-		    send(s1, msg_d, msg_len_d, 0);
+		    send(s1_cproxy, msg_d, msg_len_d, 0);
 		    memset(reply_buf, 0, sizeof(reply_buf));
 		}
 	    }
@@ -204,11 +217,11 @@ int main(int argc, char const *argv[])
 				   if(len < 0)
 				   printf("ERROR on RECV()!\n");
 				 */
-	close(s1);
-	//close(s2);
+	close(s1_cproxy);
+	//close(s2_daemon);
 	close(server_fd);
     }
-    close(s2);
+    close(s2_daemon);
     //close(server_fd);
     close(server_teldaemon);
     return 0;
