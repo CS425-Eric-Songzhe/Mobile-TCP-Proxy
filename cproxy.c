@@ -57,20 +57,31 @@ int main(int argc, char const *argv[])
     //printf("Accepting request from telnet\n");
     s1 = accept_client(sock_telnet, &addr_telnet);
     //printf("- telnet request accepted\n");
+    int sessionID = rand();
+
 
     int len1 = 0;		//, len2 = 0;
     while (1) {
 	
 	// Setup Sockets
-	//printf("Setting up socket for sproxy\n");
+	printf("Setting up socket for sproxy\n");
     	struct sockaddr_in serv_addr;
     	int sock = setup_socket(&serv_addr, ip, port_sproxy);
-    	//  printf("- socket for sproxy open\n");
+    	printf("- socket:%d  for sproxy open\n", sock);
+/*
+	// Forcefully attaching socket to the port 8080
+    	int opt=1;
+	if (setsockopt(sock, SOL_SOCKET, SO_REUSEADDR | SO_REUSEPORT,
+                                                  &opt, sizeof(opt)))
+    	{
+        	perror("setsockopt");
+        	exit(EXIT_FAILURE);
+    	}
+*/
 
-    	//printf("Listening for client connect request\n");
+        printf("Listening for client connect request\n");
     	connect_to_server(&serv_addr, sock);
-    	int sessionID = rand();
-    	//printf("- connected to client\n");
+    	printf("- connected to client\n");
 
 	// sproxy
 	s2 = sock;
@@ -188,6 +199,7 @@ int main(int argc, char const *argv[])
 
 	}
 	close(s1);
+	close(sock);
 	//close(s2);
     }
 

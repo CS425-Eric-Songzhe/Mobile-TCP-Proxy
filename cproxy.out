@@ -1,0 +1,207 @@
+Setting up socket for sproxy
+- socket:5  for sproxy open
+Listening for client connect request
+- connected to client
+Recv data: ÿýÿý ÿý#ÿý'
+After parse, payload is: ÿýÿý ÿý#ÿý'
+Recieved Data from -1
+Recved command from sproxy: ||
+, 12
+Make data: ÿûÿû ÿü#ÿû'
+Recv data: ÿú ÿðÿú'ÿðÿúÿð
+After parse, payload is: ÿú ÿðÿú'ÿðÿúÿð
+Recieved Data from 1804289383
+Recved command from sproxy: ||
+, 18
+Make data: ÿú 
+Recv data: ÿûÿýÿýÿûÿý!
+After parse, payload is: ÿûÿýÿýÿûÿý!
+Recieved Data from 1804289383
+Recved command from sproxy: ||
+, 15
+Make data: ÿýÿüÿûÿú
+Recv data: ÿû
+After parse, payload is: ÿû
+Recieved Data from 1804289383
+Recved command from sproxy: ||
+, 3
+Make data: ÿý
+Recv data: Ubuntu 14.04.5 LTS
+
+After parse, payload is: Ubuntu 14.04.5 LTS
+
+Recieved Data from 1804289383
+Recved command from sproxy: ||
+, 20
+Recv data: vm92 login: 
+After parse, payload is: vm92 login: 
+Recieved Data from 1804289383
+Recved command from sproxy: ||
+, 12
+Make data:  
+print HB 0
+Recv data:  
+After parse, payload is:  
+Received HB (0) from 1804289383
+Make data:  
+print HB 1
+Recv data:  
+After parse, payload is:  
+Received HB (1) from 1804289383
+Make data:  
+print HB 2
+Recv data:  
+After parse, payload is:  
+Received HB (2) from 1804289383
+Make data:  
+print HB 3
+Recv data:  
+After parse, payload is:  
+Received HB (3) from 1804289383
+Make data: s
+Recv data: s
+After parse, payload is: s
+Recieved Data from 1804289383
+Recved command from sproxy: ||
+, 1
+Make data:  
+print HB 4
+Recv data:  
+After parse, payload is:  
+Received HB (4) from 1804289383
+Make data: o
+Recv data: o
+After parse, payload is: o
+Recieved Data from 1804289383
+Recved command from sproxy: ||
+, 1
+Make data:  
+print HB 5
+Make data: n
+Recv data:  
+After parse, payload is:  
+Received HB (5) from 1804289383
+Recv data: n
+After parse, payload is: n
+Recieved Data from 1804289383
+Recved command from sproxy: ||
+, 1
+Make data: g
+Recv data: g
+After parse, payload is: g
+Recieved Data from 1804289383
+Recved command from sproxy: ||
+, 1
+Make data:  
+print HB 6
+Recv data:  
+After parse, payload is:  
+Received HB (6) from 1804289383
+Make data: z
+Recv data: z
+After parse, payload is: z
+Recieved Data from 1804289383
+Recved command from sproxy: ||
+, 1
+Make data: h
+Recv data: h
+After parse, payload is: h
+Recieved Data from 1804289383
+Recved command from sproxy: ||
+, 1
+Make data:  
+print HB 7
+Make data: e
+Recv data:  
+After parse, payload is:  
+Received HB (7) from 1804289383
+Recv data: e
+After parse, payload is: e
+Recieved Data from 1804289383
+Recved command from sproxy: ||
+, 1
+Make data: z
+Recv data: z
+After parse, payload is: z
+Recieved Data from 1804289383
+Recved command from sproxy: ||
+, 1
+Make data:  
+print HB 8
+Make data: h
+Recv data:  
+After parse, payload is:  
+Received HB (8) from 1804289383
+Recv data: h
+After parse, payload is: h
+Recieved Data from 1804289383
+Recved command from sproxy: ||
+, 1
+Make data: u
+Recv data: u
+After parse, payload is: u
+Recieved Data from 1804289383
+Recved command from sproxy: ||
+, 1
+Make data:  
+print HB 9
+Recv data:  
+After parse, payload is:  
+Received HB (9) from 1804289383
+Make data:  
+print HB 10
+Recv data:  
+After parse, payload is:  
+Received HB (10) from 1804289383
+Make data: 
+Recv data: 
+Password: 
+After parse, payload is: 
+Password: 
+Recieved Data from 1804289383
+Recved command from sproxy: ||
+, 12
+Make data:  
+print HB 11
+Recv data:  
+After parse, payload is:  
+Received HB (11) from 1804289383
+Make data: @
+Make data:  
+print HB 12
+Make data: V
+Recv data:  
+After parse, payload is:  
+Received HB (12) from 1804289383
+Make data: i
+Make data:  
+print HB 13
+Make data: l
+Recv data:  
+After parse, payload is:  
+Received HB (13) from 1804289383
+Make data: l
+Make data: a
+Make data: s
+Make data:  
+print HB 14
+Make data: n
+Recv data:  
+After parse, payload is:  
+Received HB (14) from 1804289383
+Make data:  
+Make data: 4
+Make data:  
+print HB 15
+Make data: 9
+Recv data:  
+After parse, payload is:  
+Received HB (15) from 1804289383
+Make data: 2
+Make data: 6
+Make data:  
+print HB 16
+Make data: 0
+Recv data:  
+After parse, payload is:  
+Received HB
