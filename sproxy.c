@@ -149,9 +149,9 @@ int main(int argc, char const *argv[])
 		    }
 		    printf("\n");
 
-		    char *pkt_buf = cmd_buf; // for shifting
-		    int pkt_len = len1; // keeping track of where to start parsing
-		    int go_again = 0; //1 if multiple messages
+		    char *pkt_buf = cmd_buf;	// for shifting
+		    int pkt_len = len1;	// keeping track of where to start parsing
+		    int go_again = 0;	//1 if multiple messages
 		    // parse each message from packet
 		    do {
 			int type = -1;
@@ -196,18 +196,18 @@ int main(int argc, char const *argv[])
 
 			// Check if there are remaining multiple messages
 			int hdr_and_pay = HDR_LEN + paylen_c;
-			if ( hdr_and_pay < pkt_len ){
-			  go_again = 1;
-			  // truncate pkt_len
-			  pkt_len = pkt_len - hdr_and_pay;
-			  // shift beginning of cmd_buf to next message
-			  pkt_buf += hdr_and_pay;
-			  printf("~~WOW multiple messages! going to go again.~~\n");
+			if (hdr_and_pay < pkt_len) {
+			    go_again = 1;
+			    // truncate pkt_len
+			    pkt_len = pkt_len - hdr_and_pay;
+			    // shift beginning of cmd_buf to next message
+			    pkt_buf += hdr_and_pay;
+			    printf
+				("~~WOW multiple messages! going to go again.~~\n");
+			} else {
+			    go_again = 0;
 			}
-			else{
-			  go_again = 0;
-			}
-			
+
 		    } while (go_again);
 
 		    //printf("Recved command from cproxy: %s\n", cmd_buf);
@@ -230,9 +230,8 @@ int main(int argc, char const *argv[])
 		    // Send Acknowledgment
 		    char msg_ack[9999] = { 0 };
 		    char *ack_str = "ack";
-		    int msg_len_ack =
-			make_msg(msg_ack, ACK, 0, sessionID,
-				 strlen(ack_str), ack_str);
+		    int msg_len_ack = make_msg(msg_ack, ACK, 0, sessionID,
+					       strlen(ack_str), ack_str);
 		    usleep(500);
 		    send(s1_cproxy, msg_ack, msg_len_ack, 0);
 		    printf("sent acknow\n");

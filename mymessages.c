@@ -63,7 +63,7 @@ int make_msg(char *msg, int type, int ackID, int sessionID, int paylen,
     // Append Payload
     memcpy(&msg[HDR_LEN], payload, paylen);
 
-    printf("Make data: %s\n",&msg[HDR_LEN]);
+    printf("Make data: %s\n", &msg[HDR_LEN]);
 
     return HDR_LEN + paylen;
 }
