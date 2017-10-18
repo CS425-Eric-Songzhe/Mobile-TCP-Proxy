@@ -4,6 +4,7 @@
 #define HEARTBEAT 2
 #define DATA 1
 #define ACK 3
+#define HDR_LEN 16
 
 /*
  * prepend length of payload to payload. this is the message to be sent

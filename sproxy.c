@@ -19,7 +19,8 @@
 /*
  * MAIN
  */
-int main(int argc, char const *argv[]){
+int main(int argc, char const *argv[])
+{
 
     int s1_cproxy = 0, s2_daemon = 0, n = 0, rv = 0, sessionID = -1;
     fd_set readfds;
@@ -49,30 +50,29 @@ int main(int argc, char const *argv[]){
     // Client Loop        
     while (1) {
 	// Setup Sockets
-    	printf("Setting up socket for cproxy\n");
-    	struct sockaddr_in address;
-    	int server_fd = setup_socket(&address, NULL, port);
-    	printf("- socket:%d for cproxy open\n", server_fd);
+	printf("Setting up socket for cproxy\n");
+	struct sockaddr_in address;
+	int server_fd = setup_socket(&address, NULL, port);
+	printf("- socket:%d for cproxy open\n", server_fd);
 
 	// Forcefully attaching socket to the port 8080
 	int opt = 1;
-    	if (setsockopt(server_fd, SOL_SOCKET, SO_REUSEADDR | SO_REUSEPORT,
-                                                  &opt, sizeof(opt)))
-    	{
-        	perror("setsockopt");
-        	exit(EXIT_FAILURE);
-    	}
+	if (setsockopt(server_fd, SOL_SOCKET, SO_REUSEADDR | SO_REUSEPORT,
+		       &opt, sizeof(opt))) {
+	    perror("setsockopt");
+	    exit(EXIT_FAILURE);
+	}
 
-    	printf("Binding to port for cproxy.\n");
-    	bind_and_listen(server_fd, &address, 5);
-    	printf("- Bind to port for cproxy successed\n");
+	printf("Binding to port for cproxy.\n");
+	bind_and_listen(server_fd, &address, 5);
+	printf("- Bind to port for cproxy successed\n");
 
 	// Accept client
 	//printf("Accepting from cProxy\n");
 	s1_cproxy = accept_client(server_fd, &address);
 	s2_daemon = server_teldaemon;
 	//printf("- Accepted\n");
-	int /*len1 = 0,*/ len2 = 0;
+	int len1 = 0, len2 = 0;
 
 	// Set up heartbeat time interval checking
 	struct timeval last, now, hb_time;
@@ -82,7 +82,7 @@ int main(int argc, char const *argv[]){
 	int last_hb = -1;
 
 	while (1) {
-	  printf("---------------------------------------\n");
+	    printf("---------------------------------------\n");
 	    // Receive messages from new_socket
 	    FD_ZERO(&readfds);
 	    // add our descriptors to the set
@@ -111,24 +111,24 @@ int main(int argc, char const *argv[]){
 		int msg_len_HB =
 		    make_msg(msg_HB, HEARTBEAT, hb_sent, sessionID,
 			     sizeof(payload_HB), payload_HB);
+		usleep(500);
 		send(s1_cproxy, msg_HB, msg_len_HB, 0);
 		printf("send HB %d\n", hb_sent);
 		gettimeofday(&last, NULL);
 		hb_sent++;
 	    }
-
 	    // Detect if timeout by heartbeat
-	    if (last_hb >= 0){
-	    	gettimeofday(&now, NULL);
-	    	double diff_hb =
-			(now.tv_sec - hb_time.tv_sec) +
-			((now.tv_usec - hb_time.tv_usec) / 1000000.0);
-	    	if (diff_hb >= 3 /*&& sessionID > 0*/) {
-			printf("HB Timeout occured\n");
-			printf("Socket to cproxy closed.\n");
-			break;
-	    	}
-	    }	
+	    if (last_hb >= 0) {
+		gettimeofday(&now, NULL);
+		double diff_hb =
+		    (now.tv_sec - hb_time.tv_sec) +
+		    ((now.tv_usec - hb_time.tv_usec) / 1000000.0);
+		if (diff_hb >= 3 /*&& sessionID > 0 */ ) {
+		    printf("HB Timeout occured\n");
+		    printf("Socket to cproxy closed.\n");
+		    break;
+		}
+	    }
 
 
 	    if (rv == -1) {
@@ -140,48 +140,76 @@ int main(int argc, char const *argv[]){
 		//s1_cproxy: cproxy
 		if (FD_ISSET(s1_cproxy, &readfds)) {
 		    //printf("wait for cproxy\n");
-		    recv(s1_cproxy, cmd_buf, sizeof(cmd_buf), 0);
-		    int type = -1;
-		    int ackID = -1;
-		    int sessionID_C = -1;
-		    char payload_c[9999] = { 0 };
-		    int paylen_c =
-			parse_msg(cmd_buf, &type, &ackID, &sessionID_C,
-				  payload_c);
-		    if (sessionID != sessionID_C) {
-			printf("New session ID: change %d to %d\n",
-			       sessionID, sessionID_C);
-			sessionID = sessionID_C;
+		    len1 = recv(s1_cproxy, cmd_buf, sizeof(cmd_buf), 0);
+
+		    printf("Recvd from s1_cproxy: %d\n", len1);
+		    int i = 0;
+		    for (i = 0; i < len1; i++) {
+			printf("%c", cmd_buf[i]);
 		    }
-		    else{
-			printf("Reconnected with: %d\n", sessionID_C);
-		    }	
-		    // If message is heartbeat, just record
-		    if (type == HEARTBEAT) {
-			//if (ackID != 0)
-			printf("Received HB (%d) from %d\n", ackID,
-			       		sessionID_C);
-			//hb_recv++;
-			//if (ackID != last_hb) {
-				// record time of this heartbeat
-			gettimeofday(&hb_time, NULL);    
-			//last_hb = ackID;
-			//}
-			hb_recv++;
-			last_hb++;
-		    }
-		    else if (type == DATA) {
-			printf("Recieved Data from %d\n", sessionID_C);
-			//printf("Recved command from cproxy: %s\n, %d\n", cmd_buf, paylen_c);
-			send(s2_daemon, payload_c, paylen_c, 0);
-		    } 
-		    else if (type == ACK){
-		      printf("Recvd Acknowledgement from %d, %d\n", sessionID_C, ackID);
-		    }
-		    else {
-			//printf("ERROR: unknown message type\n");
-			;
-		    }
+		    printf("\n");
+
+		    char *pkt_buf = cmd_buf; // for shifting
+		    int pkt_len = len1; // keeping track of where to start parsing
+		    int go_again = 0; //1 if multiple messages
+		    // parse each message from packet
+		    do {
+			int type = -1;
+			int ackID = -1;
+			int sessionID_C = -1;
+			char payload_c[9999] = { 0 };
+			int paylen_c =
+			    parse_msg(pkt_buf, &type, &ackID, &sessionID_C,
+				      payload_c);
+			if (sessionID != sessionID_C) {
+			    printf("New session ID: change %d to %d\n",
+				   sessionID, sessionID_C);
+			    sessionID = sessionID_C;
+			} else {
+			    printf("Reconnected with: %d\n", sessionID_C);
+			}
+			// If message is heartbeat, just record
+			if (type == HEARTBEAT) {
+			    //if (ackID != 0)
+			    printf("Received HB (%d) from %d\n", ackID,
+				   sessionID_C);
+			    //hb_recv++;
+			    //if (ackID != last_hb) {
+			    // record time of this heartbeat
+			    gettimeofday(&hb_time, NULL);
+			    //last_hb = ackID;
+			    //}
+			    hb_recv++;
+			    last_hb++;
+			} else if (type == DATA) {
+			    printf("Recieved Data from %d\n", sessionID_C);
+			    //printf("Recved command from cproxy: %s\n, %d\n", cmd_buf, paylen_c);
+			    usleep(500);
+			    send(s2_daemon, payload_c, paylen_c, 0);
+			} else if (type == ACK) {
+			    printf("Recvd Acknowledgement from %d, %d\n",
+				   sessionID_C, ackID);
+			} else {
+			    //printf("ERROR: unknown message type\n");
+			    ;
+			}
+
+			// Check if there are remaining multiple messages
+			int hdr_and_pay = HDR_LEN + paylen_c;
+			if ( hdr_and_pay < pkt_len ){
+			  go_again = 1;
+			  // truncate pkt_len
+			  pkt_len = pkt_len - hdr_and_pay;
+			  // shift beginning of cmd_buf to next message
+			  pkt_buf += hdr_and_pay;
+			  printf("~~WOW multiple messages! going to go again.~~\n");
+			}
+			else{
+			  go_again = 0;
+			}
+			
+		    } while (go_again);
+
 		    //printf("Recved command from cproxy: %s\n", cmd_buf);
 		    //send(s2_daemon, cmd_buf, len1, 0);
 		    memset(cmd_buf, 0, sizeof(cmd_buf));
@@ -189,13 +217,23 @@ int main(int argc, char const *argv[]){
 		//s2_daemon:telnet-daemon
 		if (FD_ISSET(s2_daemon, &readfds)) {
 		    //printf("wait for daemon\n");
-		    len2 = recv(s2_daemon, reply_buf, sizeof(reply_buf), 0);
-		    printf("Recved reply from daemon: %s\n, %d\n", reply_buf, len2);
+		    len2 =
+			recv(s2_daemon, reply_buf, sizeof(reply_buf), 0);
+
+		    printf("Recvd from s2_daemon: %d\n", len2);
+		    int i = 0;
+		    for (i = 0; i < len2; i++) {
+			printf("%c", reply_buf[i]);
+		    }
+		    printf("\n");
+
 		    // Send Acknowledgment
 		    char msg_ack[9999] = { 0 };
 		    char *ack_str = "ack";
-		    int msg_len_ack = 
-		      make_msg(msg_ack, ACK, 0, sessionID, strlen(ack_str), ack_str);
+		    int msg_len_ack =
+			make_msg(msg_ack, ACK, 0, sessionID,
+				 strlen(ack_str), ack_str);
+		    usleep(500);
 		    send(s1_cproxy, msg_ack, msg_len_ack, 0);
 		    printf("sent acknow\n");
 
@@ -205,6 +243,7 @@ int main(int argc, char const *argv[]){
 			make_msg(msg_d, DATA, 0, sessionID, len2,
 				 reply_buf);
 
+		    usleep(500);
 		    send(s1_cproxy, msg_d, msg_len_d, 0);
 		    memset(reply_buf, 0, sizeof(reply_buf));
 		}

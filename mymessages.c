@@ -5,11 +5,12 @@
 
 #include <stdio.h>
 #include <string.h>
+#include "mymessages.h"
 
 #define TEST_MSG 0
 
 
-/*                                                                                                    
+/*                                                  
  * return the 4 bytes of buffer as an int at index
  */
 int decode_int(char *buffer, int index)
@@ -60,11 +61,11 @@ int make_msg(char *msg, int type, int ackID, int sessionID, int paylen,
     encode_int(paylen, msg, 12);
 
     // Append Payload
-    memcpy(&msg[16], payload, paylen);
+    memcpy(&msg[HDR_LEN], payload, paylen);
 
-    printf("Make data: %s\n",&msg[16]);
+    printf("Make data: %s\n",&msg[HDR_LEN]);
 
-    return 16 + paylen;
+    return HDR_LEN + paylen;
 }
 
 
@@ -87,10 +88,10 @@ int parse_msg(char *msg, int *type, int *ackID, int *sessionID,
     // Paylen
     int paylen = decode_int(msg, 12);
 
-    printf("Recv data: %s\n", &msg[16]);
+    printf("Recv data: %s\n", &msg[HDR_LEN]);
 
     // Payload
-    memcpy(payload, &msg[16], paylen);
+    memcpy(payload, &msg[HDR_LEN], paylen);
 
     printf("After parse, payload is: %s\n", payload);
 
