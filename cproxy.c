@@ -57,6 +57,7 @@ int main(int argc, char const *argv[])
     //printf("Accepting request from telnet\n");
     s1_telnet = accept_client(sock_telnet, &addr_telnet);
     //printf("- telnet request accepted\n");
+    //printf("- telnet request accepted\n");
     int sessionID = rand();
 
 
@@ -68,7 +69,7 @@ int main(int argc, char const *argv[])
 	struct sockaddr_in serv_addr;
 	int sock = setup_socket(&serv_addr, ip, port_sproxy);
 	printf("- socket:%d  for sproxy open\n", sock);
-/*
+
 	// Forcefully attaching socket to the port 8080
     	int opt=1;
 	if (setsockopt(sock, SOL_SOCKET, SO_REUSEADDR | SO_REUSEPORT,
@@ -77,7 +78,7 @@ int main(int argc, char const *argv[])
         	perror("setsockopt");
         	exit(EXIT_FAILURE);
     	}
-*/
+
 
 	printf("Listening for client connect request\n");
 	connect_to_server(&serv_addr, sock);
@@ -139,9 +140,20 @@ int main(int argc, char const *argv[])
 		    ((now.tv_usec - hb_time.tv_usec) / 1000000.0);
 		if (diff_hb >= 3 /*&& sessionID > 0 */ ) {
 		    printf("HB Timeout occured\n");
-		    //close(s1_telnet);
-		    printf("Socket to sproxy closed.\n");
-		    break;
+		    close(s2_sproxy);
+		    printf("Socket to sproxy closed. Reconnecting a new one -------------------\n");
+		    //break;
+		    struct sockaddr_in new_addr;
+		    s2_sproxy = setup_socket(&new_addr, ip, port_sproxy);
+		    
+		    int try = 1;
+		    do{
+		      printf("Attempting to reconnect...\n");
+		      try = connect_to_server(&new_addr, s2_sproxy);
+		      //usleep(5000);
+		    } while(try == 0);
+		    gettimeofday(&hb_time, NULL);
+		    //diff_hb = 0; //avoid reconnection unti recv hb
 		}
 	    }
 
@@ -155,7 +167,7 @@ int main(int argc, char const *argv[])
 		// s1_telnet: Telnet
 		if (FD_ISSET(s1_telnet, &readfds)) {
 		    len1 = recv(s1_telnet, cmd_buf, sizeof(cmd_buf), 0);
-
+		    if(len1 > 0){
 		    printf("Recvd from s1_telnet: %d\n", len1);
 		    int i = 0;
 		    for (i = 0; i < len1; i++) {
@@ -180,12 +192,41 @@ int main(int argc, char const *argv[])
 		    usleep(500);
 		    send(s2_sproxy, msg_t, msg_len_t, 0);
 		    memset(cmd_buf, 0, sizeof(cmd_buf));
+		    }
+		    else{
+			printf("Telnet connect failed, try to reconnect.\n");
+			/*close(s1_telnet);
+			struct sockaddr_in new_addr_telnet;
+    			int new_sock_telnet = setup_socket(&new_addr_telnet, "127.0.0.1", port_telnet);
+    			//printf("- socket for telnet open\n");
+
+    			// Connect with Telnet
+    			printf("Listening for telnet connect request\n");
+    			listen(new_sock_telnet, 5);
+    			//connect_to_server(&addr_telnet, sock_telnet);
+    			printf("- connected to telnet\n");
+			
+    			// Accept telnet
+    			printf("Accepting request from telnet\n");
+    			s1_telnet = accept_client(new_sock_telnet, &new_addr_telnet);
+			printf("Accepted with new telnet at sock: %d\n", s1_telnet);
+			close(s2_sproxy);
+                   	s2_sproxy = setup_socket(&serv_addr, ip, port_sproxy);
+                   	printf("- socket:%d  for sproxy open\n", s2_sproxy);
+
+                   	printf("Listening for client connect request\n");
+                   	connect_to_server(&serv_addr, s2_sproxy);
+                   	printf("- connected to client\n");
+			
+		        sessionID = rand();
+			continue;*/
+		    }
 		}
 		// s2_sproxy: Sproxy
 		if (FD_ISSET(s2_sproxy, &readfds)) {
 		    len2 =
 			recv(s2_sproxy, reply_buf, sizeof(reply_buf), 0);
-
+		    if(len2 > 0){
 		    printf("Recvd from s2_cproxy: %d\n", len2);
 		    int i = 0;
 		    for (i = 0; i < len2; i++) {
@@ -254,14 +295,25 @@ int main(int argc, char const *argv[])
 
 		    memset(reply_buf, 0, sizeof(reply_buf));
 		}
+		else{
+		   printf("proxy connection fails, trying to reconnect ---------------------\n");
+		   close(s2_sproxy);
+		   s2_sproxy = setup_socket(&serv_addr, ip, port_sproxy);
+        	   printf("- socket:%d  for sproxy open\n", sock);
+
+        	   printf("Listening for client connect request\n");
+        	   connect_to_server(&serv_addr, sock);
+        	   printf("- connected to client\n");
+		}
+		}
 	    }
 
 	}
-	close(s2_sproxy);
-	//close(sock);
 	//close(s2_sproxy);
+	close(sock);
+	close(s2_sproxy);
     }
-
+    //close(s2_sproxy);
     close(s1_telnet);
     close(sock_telnet);
     return 0;

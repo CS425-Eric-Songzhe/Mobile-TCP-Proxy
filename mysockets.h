@@ -15,7 +15,7 @@ void bind_and_listen(int server_fd, struct sockaddr_in *address,
 /*
  * connect to server with serv_addr
  */
-void connect_to_server(struct sockaddr_in *serv_addr, int sock);
+int connect_to_server(struct sockaddr_in *serv_addr, int sock);
 
 /*
  * accept a new client and return socket value

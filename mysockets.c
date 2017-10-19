@@ -64,16 +64,19 @@ bind_and_listen(int server_fd, struct sockaddr_in *address, int backlog)
 /*
  * connect to server with serv_addr
  */
-void connect_to_server(struct sockaddr_in *serv_addr, int sock)
+int connect_to_server(struct sockaddr_in *serv_addr, int sock)
 {
 
     if (connect(sock, (struct sockaddr *) serv_addr, sizeof(*serv_addr)) <
 	0) {
 	perror("Connection Failed");
 	printf("%d\n", sock);
-	exit(EXIT_FAILURE);
+	return 0;
+	//exit(EXIT_FAILURE);
     }
     //printf("telnet connected at: %d\n", sock);
+
+    return 1;
 }
 
 
