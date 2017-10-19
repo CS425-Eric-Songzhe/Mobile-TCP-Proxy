@@ -16,20 +16,42 @@
 #include "mymessages.h"
 
 
+void run(char const *ip, int port_sproxy, int port_telnet);
+
 /*
  * MAIN
  */
 int main(int argc, char const *argv[])
 {
+  /*
     int s1_telnet = 0, s2_sproxy = 0, n = 0, rv = 0;
     fd_set readfds;
     struct timeval tv;
     char cmd_buf[9999], reply_buf[9999];
-
+  */
     // Read Arguments
     char const *ip = argv[2];	// server ip address
     int port_sproxy = atoi(argv[3]);	// server port
     int port_telnet = atoi(argv[1]);	// telnet port
+
+    while(1){
+      run(ip, port_sproxy, port_telnet);
+      printf("RESTARTING...\n");
+      sleep(2);
+    }
+    
+}
+
+
+/*
+ * RUN
+ */
+void run(char const *ip, int port_sproxy, int port_telnet){
+    
+    int s1_telnet = 0, s2_sproxy = 0, n = 0, rv = 0;
+    fd_set readfds;
+    struct timeval tv;
+    char cmd_buf[9999], reply_buf[9999];
 
     // Setup Sockets
     //printf("Setting up socket for sproxy\n");
@@ -194,11 +216,14 @@ int main(int argc, char const *argv[])
 			usleep(500);
 			send(s2_sproxy, msg_t, msg_len_t, 0);
 			memset(cmd_buf, 0, sizeof(cmd_buf));
-		    } else {
+		    } else { // len < 1
 			printf
 			    ("Telnet connect failed, try to reconnect.\n");
-			/*close(s1_telnet);
-			   struct sockaddr_in new_addr_telnet;
+			close(s1_telnet);
+			close(s2_sproxy);
+			close(sock_telnet);
+			return;
+			/*   struct sockaddr_in new_addr_telnet;
 			   int new_sock_telnet = setup_socket(&new_addr_telnet, "127.0.0.1", port_telnet);
 			   //printf("- socket for telnet open\n");
 
@@ -212,7 +237,7 @@ int main(int argc, char const *argv[])
 			   printf("Accepting request from telnet\n");
 			   s1_telnet = accept_client(new_sock_telnet, &new_addr_telnet);
 			   printf("Accepted with new telnet at sock: %d\n", s1_telnet);
-			   close(s2_sproxy);
+			   
 			   s2_sproxy = setup_socket(&serv_addr, ip, port_sproxy);
 			   printf("- socket:%d  for sproxy open\n", s2_sproxy);
 
@@ -299,9 +324,9 @@ int main(int argc, char const *argv[])
 			} while (go_again);
 
 			memset(reply_buf, 0, sizeof(reply_buf));
-		    } else {
+		    } else { // len < 1
 			printf
-			    ("proxy connection fails, trying to reconnect ---------------------\n");
+			    ("(LEN < 1) sproxy connection fails, trying to reconnect ---------------------\n");
 			close(s2_sproxy);
 			s2_sproxy =
 			    setup_socket(&serv_addr, ip, port_sproxy);
@@ -322,5 +347,5 @@ int main(int argc, char const *argv[])
     //close(s2_sproxy);
     close(s1_telnet);
     close(sock_telnet);
-    return 0;
+    return;// 0;
 }
