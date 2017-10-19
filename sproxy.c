@@ -235,8 +235,8 @@ void run(int port)
 			send(s1_cproxy, msg_d, msg_len_d, 0);
 			memset(reply_buf, 0, sizeof(reply_buf));
 		    } else {	// len < 1
-			printf
-			    ("Telnet-daemon connection failed, reconnecting ...\n");
+		      //printf("Telnet-daemon connection failed, reconnecting ...\n");
+		      usleep(50000);
 		    }
 		}
 	    }
