@@ -16,18 +16,42 @@
 #include "mysockets.h"
 #include "mymessages.h"
 
+
+void run(int port);
+
 /*
  * MAIN
  */
 int main(int argc, char const *argv[])
 {
-
+  /*
     int s1_cproxy = 0, s2_daemon = 0, n = 0, rv = 0, sessionID = -1;
     fd_set readfds;
     struct timeval tv;
     char cmd_buf[9999], reply_buf[9999];
+  */
     // Read Arguments
     int port = atoi(argv[1]);
+
+    while(1){
+      run(port);
+      printf("RESTARTING...\n");
+      sleep(2);
+    }
+
+}
+
+
+/*
+ * RUN
+ */
+void run(int port){
+
+  int s1_cproxy = 0, s2_daemon = 0, n = 0, rv = 0, sessionID = -1;
+  fd_set readfds;
+  struct timeval tv;
+  char cmd_buf[9999], reply_buf[9999];
+
 
     // Setup Sockets
     //printf("Setting up socket for cproxy\n");
@@ -235,8 +259,12 @@ int main(int argc, char const *argv[])
 			//printf("Recved command from cproxy: %s\n", cmd_buf);
 			//send(s2_daemon, cmd_buf, len1, 0);
 			memset(cmd_buf, 0, sizeof(cmd_buf));
-		    } else {
-			printf("proxy connection failed.\n");
+		    } else { // len < 1
+			printf("(LEN < 1) cproxy connection failed.\n");
+			close(s1_cproxy);
+			close(s2_daemon);
+			close(server_fd);
+			return;
 			/*printf("Trying to reconnect to cproxy -----------------\n");
 			   // Setup Sockets
 			   printf("Setting up socket for cproxy\n");
@@ -294,7 +322,7 @@ int main(int argc, char const *argv[])
 			usleep(500);
 			send(s1_cproxy, msg_d, msg_len_d, 0);
 			memset(reply_buf, 0, sizeof(reply_buf));
-		    } else {
+		    } else { // len < 1
 			printf
 			    ("Telnet-daemon connection failed, reconnecting ...\n");
 			/*close(s2_daemon);
@@ -318,5 +346,5 @@ int main(int argc, char const *argv[])
     close(s2_daemon);
     //close(server_fd);
     close(server_teldaemon);
-    return 0;
+    return;// 0;
 }
