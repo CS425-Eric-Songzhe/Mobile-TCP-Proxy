@@ -126,7 +126,25 @@ int main(int argc, char const *argv[])
 		if (diff_hb >= 3 /*&& sessionID > 0 */ ) {
 		    printf("HB Timeout occured\n");
 		    printf("Socket to cproxy closed.\n");
-		    break;
+		    close(s1_cproxy);
+		    //struct sockaddr_in new_address;
+		    //server_fd = setup_socket(&new_address, NULL, port);
+                    //printf("- socket:%d for cproxy open\n", server_fd);
+/*
+                    // Forcefully attaching socket to the port 8080
+                    int opt = 1;
+                    if (setsockopt(server_fd, SOL_SOCKET, SO_REUSEADDR | SO_REUSEPORT, &opt, sizeof(opt))) {
+                    perror("setsockopt");
+                    exit(EXIT_FAILURE);
+                    }
+*/
+		    printf("Listenning:  %d\n", server_fd);
+		    listen(server_fd, 5);
+		    printf("trying to accept\n");
+		    s1_cproxy = accept_client(server_fd, &address);
+		    printf("accepted!!!!!!!\n");
+		   // continue;
+		    //break;
 		}
 	    }
 
@@ -141,7 +159,7 @@ int main(int argc, char const *argv[])
 		if (FD_ISSET(s1_cproxy, &readfds)) {
 		    //printf("wait for cproxy\n");
 		    len1 = recv(s1_cproxy, cmd_buf, sizeof(cmd_buf), 0);
-
+		    if(len1 > 0){
 		    printf("Recvd from s1_cproxy: %d\n", len1);
 		    int i = 0;
 		    for (i = 0; i < len1; i++) {
@@ -213,13 +231,40 @@ int main(int argc, char const *argv[])
 		    //printf("Recved command from cproxy: %s\n", cmd_buf);
 		    //send(s2_daemon, cmd_buf, len1, 0);
 		    memset(cmd_buf, 0, sizeof(cmd_buf));
+	        }
+		else{
+		    printf("proxy connection failed.\n");
+		    /*printf("Trying to reconnect to cproxy -----------------\n");
+		    // Setup Sockets
+        	    printf("Setting up socket for cproxy\n");
+        	    struct sockaddr_in new_address;
+        	    server_fd = setup_socket(&new_address, NULL, port);
+        	    printf("- socket:%d for cproxy open\n", server_fd);
+
+        	    // Forcefully attaching socket to the port 8080
+        	    int opt = 1;
+        	    if (setsockopt(server_fd, SOL_SOCKET, SO_REUSEADDR | SO_REUSEPORT,
+                       &opt, sizeof(opt))) {
+            	    perror("setsockopt");
+            	    exit(EXIT_FAILURE);
+        	    }
+
+        	    printf("listening to port for cproxy to reconnect.\n");
+        	    listen(server_fd, 5);
+                    printf("-Listen to port for cproxy reconnect successed\n");
+
+        	    // Accept client
+        	    printf("Accepting from cProxy\n");
+        	    s1_cproxy = accept_client(server_fd, &new_address);
+		    printf("Accepted to new cproxy\n");*/
+		}
 		}
 		//s2_daemon:telnet-daemon
 		if (FD_ISSET(s2_daemon, &readfds)) {
 		    //printf("wait for daemon\n");
 		    len2 =
 			recv(s2_daemon, reply_buf, sizeof(reply_buf), 0);
-
+		    if(len2 > 0){
 		    printf("Recvd from s2_daemon: %d\n", len2);
 		    int i = 0;
 		    for (i = 0; i < len2; i++) {
@@ -246,6 +291,13 @@ int main(int argc, char const *argv[])
 		    send(s1_cproxy, msg_d, msg_len_d, 0);
 		    memset(reply_buf, 0, sizeof(reply_buf));
 		}
+		else{
+		    printf("Telnet-daemon connection failed, reconnecting ...\n");
+		    /*close(s2_daemon);
+		    s2_daemon = setup_socket(&daemon_address, "127.0.0.1", 23);
+		    connect_to_server(&daemon_address, server_teldaemon);*/
+		}
+		}
 	    }
 
 
@@ -257,7 +309,7 @@ int main(int argc, char const *argv[])
 				 */
 	close(s1_cproxy);
 	//close(s2_daemon);
-	close(server_fd);
+	//close(server_fd);
     }
     close(s2_daemon);
     //close(server_fd);
