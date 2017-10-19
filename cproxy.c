@@ -71,13 +71,12 @@ int main(int argc, char const *argv[])
 	printf("- socket:%d  for sproxy open\n", sock);
 
 	// Forcefully attaching socket to the port 8080
-    	int opt=1;
+	int opt = 1;
 	if (setsockopt(sock, SOL_SOCKET, SO_REUSEADDR | SO_REUSEPORT,
-                                                  &opt, sizeof(opt)))
-    	{
-        	perror("setsockopt");
-        	exit(EXIT_FAILURE);
-    	}
+		       &opt, sizeof(opt))) {
+	    perror("setsockopt");
+	    exit(EXIT_FAILURE);
+	}
 
 
 	printf("Listening for client connect request\n");
@@ -141,17 +140,18 @@ int main(int argc, char const *argv[])
 		if (diff_hb >= 3 /*&& sessionID > 0 */ ) {
 		    printf("HB Timeout occured\n");
 		    close(s2_sproxy);
-		    printf("Socket to sproxy closed. Reconnecting a new one -------------------\n");
+		    printf
+			("Socket to sproxy closed. Reconnecting a new one -------------------\n");
 		    //break;
 		    struct sockaddr_in new_addr;
 		    s2_sproxy = setup_socket(&new_addr, ip, port_sproxy);
-		    
+
 		    int try = 1;
-		    do{
-		      printf("Attempting to reconnect...\n");
-		      try = connect_to_server(&new_addr, s2_sproxy);
-		      //usleep(5000);
-		    } while(try == 0);
+		    do {
+			printf("Attempting to reconnect...\n");
+			try = connect_to_server(&new_addr, s2_sproxy);
+			//usleep(5000);
+		    } while (try == 0);
 		    gettimeofday(&hb_time, NULL);
 		    //diff_hb = 0; //avoid reconnection unti recv hb
 		}
@@ -167,144 +167,150 @@ int main(int argc, char const *argv[])
 		// s1_telnet: Telnet
 		if (FD_ISSET(s1_telnet, &readfds)) {
 		    len1 = recv(s1_telnet, cmd_buf, sizeof(cmd_buf), 0);
-		    if(len1 > 0){
-		    printf("Recvd from s1_telnet: %d\n", len1);
-		    int i = 0;
-		    for (i = 0; i < len1; i++) {
-			printf("%c", cmd_buf[i]);
-		    }
-		    printf("\n");
+		    if (len1 > 0) {
+			printf("Recvd from s1_telnet: %d\n", len1);
+			int i = 0;
+			for (i = 0; i < len1; i++) {
+			    printf("%c", cmd_buf[i]);
+			}
+			printf("\n");
 
 
-		    // Send Acknowledgment                                     
-		    char msg_ack[9999] = { 0 };
-		    char *ack_str = "ack";
-		    int msg_len_ack = make_msg(msg_ack, ACK, 0, sessionID,
-					       strlen(ack_str), ack_str);
-		    usleep(500);
-		    send(s2_sproxy, msg_ack, msg_len_ack, 0);
-		    printf("sent acknow\n");
+			// Send Acknowledgment                                     
+			char msg_ack[9999] = { 0 };
+			char *ack_str = "ack";
+			int msg_len_ack =
+			    make_msg(msg_ack, ACK, 0, sessionID,
+				     strlen(ack_str), ack_str);
+			usleep(500);
+			send(s2_sproxy, msg_ack, msg_len_ack, 0);
+			printf("sent acknow\n");
 
-		    // make message
-		    char msg_t[9999] = { 0 };
-		    int msg_len_t =
-			make_msg(msg_t, DATA, 0, sessionID, len1, cmd_buf);
-		    usleep(500);
-		    send(s2_sproxy, msg_t, msg_len_t, 0);
-		    memset(cmd_buf, 0, sizeof(cmd_buf));
-		    }
-		    else{
-			printf("Telnet connect failed, try to reconnect.\n");
+			// make message
+			char msg_t[9999] = { 0 };
+			int msg_len_t =
+			    make_msg(msg_t, DATA, 0, sessionID, len1,
+				     cmd_buf);
+			usleep(500);
+			send(s2_sproxy, msg_t, msg_len_t, 0);
+			memset(cmd_buf, 0, sizeof(cmd_buf));
+		    } else {
+			printf
+			    ("Telnet connect failed, try to reconnect.\n");
 			/*close(s1_telnet);
-			struct sockaddr_in new_addr_telnet;
-    			int new_sock_telnet = setup_socket(&new_addr_telnet, "127.0.0.1", port_telnet);
-    			//printf("- socket for telnet open\n");
+			   struct sockaddr_in new_addr_telnet;
+			   int new_sock_telnet = setup_socket(&new_addr_telnet, "127.0.0.1", port_telnet);
+			   //printf("- socket for telnet open\n");
 
-    			// Connect with Telnet
-    			printf("Listening for telnet connect request\n");
-    			listen(new_sock_telnet, 5);
-    			//connect_to_server(&addr_telnet, sock_telnet);
-    			printf("- connected to telnet\n");
-			
-    			// Accept telnet
-    			printf("Accepting request from telnet\n");
-    			s1_telnet = accept_client(new_sock_telnet, &new_addr_telnet);
-			printf("Accepted with new telnet at sock: %d\n", s1_telnet);
-			close(s2_sproxy);
-                   	s2_sproxy = setup_socket(&serv_addr, ip, port_sproxy);
-                   	printf("- socket:%d  for sproxy open\n", s2_sproxy);
+			   // Connect with Telnet
+			   printf("Listening for telnet connect request\n");
+			   listen(new_sock_telnet, 5);
+			   //connect_to_server(&addr_telnet, sock_telnet);
+			   printf("- connected to telnet\n");
 
-                   	printf("Listening for client connect request\n");
-                   	connect_to_server(&serv_addr, s2_sproxy);
-                   	printf("- connected to client\n");
-			
-		        sessionID = rand();
-			continue;*/
+			   // Accept telnet
+			   printf("Accepting request from telnet\n");
+			   s1_telnet = accept_client(new_sock_telnet, &new_addr_telnet);
+			   printf("Accepted with new telnet at sock: %d\n", s1_telnet);
+			   close(s2_sproxy);
+			   s2_sproxy = setup_socket(&serv_addr, ip, port_sproxy);
+			   printf("- socket:%d  for sproxy open\n", s2_sproxy);
+
+			   printf("Listening for client connect request\n");
+			   connect_to_server(&serv_addr, s2_sproxy);
+			   printf("- connected to client\n");
+
+			   sessionID = rand();
+			   continue; */
 		    }
 		}
 		// s2_sproxy: Sproxy
 		if (FD_ISSET(s2_sproxy, &readfds)) {
 		    len2 =
 			recv(s2_sproxy, reply_buf, sizeof(reply_buf), 0);
-		    if(len2 > 0){
-		    printf("Recvd from s2_cproxy: %d\n", len2);
-		    int i = 0;
-		    for (i = 0; i < len2; i++) {
-			printf("%c", reply_buf[i]);
+		    if (len2 > 0) {
+			printf("Recvd from s2_cproxy: %d\n", len2);
+			int i = 0;
+			for (i = 0; i < len2; i++) {
+			    printf("%c", reply_buf[i]);
+			}
+			printf("\n");
+
+			char *pkt_buf = reply_buf;	// for shifting   
+			int pkt_len = len2;	// keeping track of where to start parsing
+			int go_again = 0;	//1 if multiple messages    
+			// parse each message from packet
+			do {
+			    int type = -1;
+			    int ackID = -1;
+			    int sessionID_S = -1;
+			    char payload_s[9999] = { 0 };
+			    int paylen_s =
+				parse_msg(pkt_buf, &type, &ackID,
+					  &sessionID_S,
+					  payload_s);
+
+			    // If message is heartbeat, just record
+			    if (type == HEARTBEAT) {
+				printf("Received HB (%d) from %d\n", ackID,
+				       sessionID_S);
+				gettimeofday(&hb_time, NULL);
+				hb_recv++;
+				last_hb++;
+				//if(ackID == last_hb){
+				//      exit(0);
+				//}
+				//last_hb = ackID;
+			    }
+			    // else, if message is data, send payload
+			    else if (type == DATA) {
+				printf("Recieved Data from %d\n",
+				       sessionID_S);
+				printf
+				    ("Recved command from sproxy: |%.*s|\n, %d\n",
+				     (int) sizeof(reply_buf), reply_buf,
+				     paylen_s);
+				usleep(500);
+				send(s1_telnet, payload_s, paylen_s, 0);
+			    } else if (type == ACK) {
+				printf
+				    ("Recvd Acknowledgement from %d, %d\n",
+				     sessionID_S, ackID);
+			    } else {
+				printf("ERROR: unknown message type: %d\n",
+				       type);
+			    }
+
+			    // Check if there are remaining multiple messages      
+			    int hdr_and_pay = HDR_LEN + paylen_s;
+			    if (hdr_and_pay < pkt_len) {
+				go_again = 1;
+				// truncate pkt_len      
+				pkt_len = pkt_len - hdr_and_pay;
+				// shift beginning of cmd_buf to next message    
+				pkt_buf += hdr_and_pay;
+				printf
+				    ("~~WOW multiple messages! going to go again.~~\n");
+			    } else {
+				go_again = 0;
+			    }
+
+
+			} while (go_again);
+
+			memset(reply_buf, 0, sizeof(reply_buf));
+		    } else {
+			printf
+			    ("proxy connection fails, trying to reconnect ---------------------\n");
+			close(s2_sproxy);
+			s2_sproxy =
+			    setup_socket(&serv_addr, ip, port_sproxy);
+			printf("- socket:%d  for sproxy open\n", sock);
+
+			printf("Listening for client connect request\n");
+			connect_to_server(&serv_addr, sock);
+			printf("- connected to client\n");
 		    }
-		    printf("\n");
-
-		    char *pkt_buf = reply_buf;	// for shifting   
-		    int pkt_len = len2;	// keeping track of where to start parsing
-		    int go_again = 0;	//1 if multiple messages    
-		    // parse each message from packet
-		    do {
-			int type = -1;
-			int ackID = -1;
-			int sessionID_S = -1;
-			char payload_s[9999] = { 0 };
-			int paylen_s = parse_msg(pkt_buf, &type, &ackID,
-						 &sessionID_S,
-						 payload_s);
-
-			// If message is heartbeat, just record
-			if (type == HEARTBEAT) {
-			    printf("Received HB (%d) from %d\n", ackID,
-				   sessionID_S);
-			    gettimeofday(&hb_time, NULL);
-			    hb_recv++;
-			    last_hb++;
-			    //if(ackID == last_hb){
-			    //      exit(0);
-			    //}
-			    //last_hb = ackID;
-			}
-			// else, if message is data, send payload
-			else if (type == DATA) {
-			    printf("Recieved Data from %d\n", sessionID_S);
-			    printf
-				("Recved command from sproxy: |%.*s|\n, %d\n",
-				 (int) sizeof(reply_buf), reply_buf,
-				 paylen_s);
-			    usleep(500);
-			    send(s1_telnet, payload_s, paylen_s, 0);
-			} else if (type == ACK) {
-			    printf("Recvd Acknowledgement from %d, %d\n",
-				   sessionID_S, ackID);
-			} else {
-			    printf("ERROR: unknown message type: %d\n",
-				   type);
-			}
-
-			// Check if there are remaining multiple messages      
-			int hdr_and_pay = HDR_LEN + paylen_s;
-			if (hdr_and_pay < pkt_len) {
-			    go_again = 1;
-			    // truncate pkt_len      
-			    pkt_len = pkt_len - hdr_and_pay;
-			    // shift beginning of cmd_buf to next message    
-			    pkt_buf += hdr_and_pay;
-			    printf
-				("~~WOW multiple messages! going to go again.~~\n");
-			} else {
-			    go_again = 0;
-			}
-
-
-		    } while (go_again);
-
-		    memset(reply_buf, 0, sizeof(reply_buf));
-		}
-		else{
-		   printf("proxy connection fails, trying to reconnect ---------------------\n");
-		   close(s2_sproxy);
-		   s2_sproxy = setup_socket(&serv_addr, ip, port_sproxy);
-        	   printf("- socket:%d  for sproxy open\n", sock);
-
-        	   printf("Listening for client connect request\n");
-        	   connect_to_server(&serv_addr, sock);
-        	   printf("- connected to client\n");
-		}
 		}
 	    }
 
