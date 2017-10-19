@@ -29,9 +29,11 @@ int main(int argc, char const *argv[])
     int port_telnet = atoi(argv[1]);	// telnet port
 
     while(1){
+      printf("========================\n");
+      printf("Launching New Session...\n");
+      printf("========================\n");
       run(ip, port_sproxy, port_telnet);
-      printf("RESTARTING...\n");
-      sleep(2);
+      sleep(1);
     }
     
 }
@@ -95,7 +97,7 @@ void run(char const *ip, int port_sproxy, int port_telnet){
 	int hb_recv = 0;
 	int last_hb = -1;
 	while (1) {
-	    printf("---------------------------------------\n");
+	    printf("----------\n");
 	    // clear the set ahead of time
 	    FD_ZERO(&readfds);
 
@@ -127,7 +129,7 @@ void run(char const *ip, int port_sproxy, int port_telnet){
 		int msg_len_HB =
 		    make_msg(msg_HB, HEARTBEAT, hb_sent, sessionID,
 			     sizeof(payload_HB), payload_HB);
-		usleep(500);
+		//usleep(500);
 		send(s2_sproxy, msg_HB, msg_len_HB, 0);
 		printf("send HB %d\n", hb_sent);
 		gettimeofday(&last, NULL);
@@ -166,24 +168,13 @@ void run(char const *ip, int port_sproxy, int port_telnet){
 		// s1_telnet: Telnet
 		if (FD_ISSET(s1_telnet, &readfds)) {
 		    len1 = recv(s1_telnet, cmd_buf, sizeof(cmd_buf), 0);
-		    if (len1 > 0) {\
-
-			// Send Acknowledgment                                 
-			char msg_ack[9999] = { 0 };
-			char *ack_str = "ack";
-			int msg_len_ack =
-			    make_msg(msg_ack, ACK, 0, sessionID,
-				     strlen(ack_str), ack_str);
-			usleep(500);
-			send(s2_sproxy, msg_ack, msg_len_ack, 0);
-			printf("sent acknow\n");
-
+		    if (len1 > 0) {
 			// make message
 			char msg_t[9999] = { 0 };
 			int msg_len_t =
 			    make_msg(msg_t, DATA, 0, sessionID, len1,
 				     cmd_buf);
-			usleep(500);
+			//usleep(500);
 			send(s2_sproxy, msg_t, msg_len_t, 0);
 			memset(cmd_buf, 0, sizeof(cmd_buf));
 		    } else { // len < 1
@@ -223,19 +214,15 @@ void run(char const *ip, int port_sproxy, int port_telnet){
 			    }
 			    // else, if message is data, send payload
 			    else if (type == DATA) {
-				printf("Recieved Data from %d\n",
+				printf("Received Data from %d\n",
 				       sessionID_S);
-				//printf("Recved command from sproxy: |%.*s|\n, %d\n",(int) sizeof(reply_buf), reply_buf, paylen_s);
-				//usleep(500);
 				send(s1_telnet, payload_s, paylen_s, 0);
-			    } else if (type == ACK) {
-			      ;//printf("Recvd Acknowledgement from %d, %d\n", sessionID_S, ackID);
 			    } else {
 				printf("ERROR: unknown message type: %d\n",
 				       type);
 			    }
 
-			    // Check if there are remaining multiple messages      
+			    // Check if there are remaining multiple messages  
 			    int hdr_and_pay = HDR_LEN + paylen_s;
 			    if (hdr_and_pay < pkt_len) {
 				go_again = 1;
