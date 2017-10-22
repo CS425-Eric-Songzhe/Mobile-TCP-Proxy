@@ -12,6 +12,7 @@
 #include <sys/types.h>
 #include <string.h>
 #include <sys/select.h>
+#include <stdbool.h>
 #include "mysockets.h"
 #include "mymessages.h"
 
@@ -28,22 +29,23 @@ int main(int argc, char const *argv[])
     int port_sproxy = atoi(argv[3]);	// server port
     int port_telnet = atoi(argv[1]);	// telnet port
 
-    while(1){
-      printf("========================\n");
-      printf("Launching New Session...\n");
-      printf("========================\n");
-      run(ip, port_sproxy, port_telnet);
-      sleep(1);
+    while (1) {
+	printf("========================\n");
+	printf("Launching New Session...\n");
+	printf("========================\n");
+	run(ip, port_sproxy, port_telnet);
+	sleep(1);
     }
-    
+
 }
 
 
 /*
  * RUN
  */
-void run(char const *ip, int port_sproxy, int port_telnet){
-    
+void run(char const *ip, int port_sproxy, int port_telnet)
+{
+
     int s1_telnet = 0, s2_sproxy = 0, n = 0, rv = 0;
     fd_set readfds;
     struct timeval tv;
@@ -65,7 +67,7 @@ void run(char const *ip, int port_sproxy, int port_telnet){
     //printf("- telnet request accepted\n");
     int sessionID = rand();
 
-
+    int got_ack = true;
     int len1 = 0, len2 = 0;
     while (1) {
 
@@ -111,7 +113,6 @@ void run(char const *ip, int port_sproxy, int port_telnet){
 	    else
 		n = s2_sproxy + 1;
 
-
 	    // wait until either socket has data ready to be recv()d (timeout 1.5 secs)
 	    tv.tv_sec = 1;
 	    tv.tv_usec = 500000;
@@ -141,10 +142,10 @@ void run(char const *ip, int port_sproxy, int port_telnet){
 		double diff_hb =
 		    (now.tv_sec - hb_time.tv_sec) +
 		    ((now.tv_usec - hb_time.tv_usec) / 1000000.0);
-		if (diff_hb >= 3 ) {
+		if (diff_hb >= 3) {
 		    printf("HB Timeout occured\n");
 		    close(s2_sproxy);
-		   
+
 		    struct sockaddr_in new_addr;
 		    s2_sproxy = setup_socket(&new_addr, ip, port_sproxy);
 
@@ -153,16 +154,31 @@ void run(char const *ip, int port_sproxy, int port_telnet){
 			printf("Attempting to reconnect...\n");
 			try = connect_to_server(&new_addr, s2_sproxy);
 		    } while (try == 0);
-		    //avoid reconnection unti recv hb
+		    //avoid reconnection until recv hb
 		    gettimeofday(&hb_time, NULL);
 		}
 	    }
+	    // Send next message in queue
+	    if (got_ack) {
 
+		// check if there is a message to send
+		if (1 /*queue is not empty */ ) {
+		    // TODO 
+		    // get/read head message from queue (don't remove/delete yet)
+		    char *msg = { 0 };
+		    int len = 0;
 
+		    // send it
+		    send(s2_sproxy, msg, len, 0);
+
+		    got_ack = false;	// mark as unacknowledged 
+		}
+	    }
+	    // Read recv()'s
 	    if (rv == -1) {
 		perror("select");	// error occurred in select()
 	    } else if (rv == 0) {
-		;	  
+		;
 	    } else {
 		// one or both of the descriptors have data
 		// s1_telnet: Telnet
@@ -174,10 +190,14 @@ void run(char const *ip, int port_sproxy, int port_telnet){
 			int msg_len_t =
 			    make_msg(msg_t, DATA, 0, sessionID, len1,
 				     cmd_buf);
-			//usleep(500);
-			send(s2_sproxy, msg_t, msg_len_t, 0);
+
+			// put msg_t AND msg_len_t together on queue
+			// TODO
+			// sending message before reading recv()'s
+			//send(s2_sproxy, msg_t, msg_len_t, 0);
+
 			memset(cmd_buf, 0, sizeof(cmd_buf));
-		    } else { // len < 1
+		    } else {	// len < 1
 			close(s1_telnet);
 			close(s2_sproxy);
 			close(sock_telnet);
@@ -214,9 +234,22 @@ void run(char const *ip, int port_sproxy, int port_telnet){
 			    }
 			    // else, if message is data, send payload
 			    else if (type == DATA) {
+				// send DATA(payload) to telnet 
 				printf("Received Data from %d\n",
 				       sessionID_S);
 				send(s1_telnet, payload_s, paylen_s, 0);
+
+				// send ACK to sproxy
+				char msg_ack[9999] = { 0 };
+				char *msg = "ack";
+				int msg_ack_len =
+				    make_msg(msg_ack, ACK, 0, sessionID,
+					     strlen(msg), msg);
+				send(s2_sproxy, msg_ack, msg_ack_len, 0);
+			    } else if (type == ACK) {
+				got_ack = true;
+				// TODO
+				// pop/remove head message in queue -- it's been acknowledged
 			    } else {
 				printf("ERROR: unknown message type: %d\n",
 				       type);
@@ -238,7 +271,7 @@ void run(char const *ip, int port_sproxy, int port_telnet){
 			} while (go_again);
 
 			memset(reply_buf, 0, sizeof(reply_buf));
-		    } else { // len < 1
+		    } else {	// len < 1
 			close(s2_sproxy);
 			s2_sproxy =
 			    setup_socket(&serv_addr, ip, port_sproxy);
