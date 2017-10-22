@@ -13,6 +13,7 @@
 #include <errno.h>
 #include <netinet/in.h>
 #include <string.h>
+#include <stdbool.h>
 #include "mysockets.h"
 #include "mymessages.h"
 
@@ -28,9 +29,9 @@ int main(int argc, char const *argv[])
     int port = atoi(argv[1]);
 
     while (1) {
-        printf("========================\n");
-      	printf("Launching New Session...\n");
-        printf("========================\n");
+	printf("========================\n");
+	printf("Launching New Session...\n");
+	printf("========================\n");
 	run(port);
 	sleep(1);
     }
@@ -83,6 +84,7 @@ void run(int port)
 	s2_daemon = server_teldaemon;
 	//printf("- Accepted\n");
 	int len1 = 0, len2 = 0;
+	int got_ack = true;
 
 	// Set up heartbeat time interval checking
 	struct timeval last, now, hb_time;
@@ -143,8 +145,22 @@ void run(int port)
 		    s1_cproxy = accept_client(server_fd, &address);
 		}
 	    }
+	    // Send next message in queue
+	    if (got_ack) {
+		// check if there is a message to send
+		if (1 /*queue is not empty */ ) {
+		    // TODO 
+		    // get/read head message from queue (don't remove/delete yet)
+		    char *msg = { 0 };
+		    int len = 0;
 
+		    // send it
+		    send(s1_cproxy, msg, len, 0);
 
+		    got_ack = false;	// mark as unacknowledged 
+		}
+	    }
+	    // Read recv()'s
 	    if (rv == -1) {
 		perror("select");	// error occurred in select()
 	    } else if (rv == 0) {
@@ -170,8 +186,9 @@ void run(int port)
 					  &sessionID_C,
 					  payload_c);
 			    if (sessionID != sessionID_C) {
-				printf("New Session ID: changing %d to %d\n",
-				       sessionID, sessionID_C);
+				printf
+				    ("New Session ID: changing %d to %d\n",
+				     sessionID, sessionID_C);
 				sessionID = sessionID_C;
 			    }
 			    // If message is heartbeat, just record
@@ -183,11 +200,22 @@ void run(int port)
 				hb_recv++;
 				last_hb++;
 			    } else if (type == DATA) {
+				// send DATA(payload) to telnet-daemon
 				printf("Received Data from %d\n",
 				       sessionID_C);
-				//printf("Recved command from cproxy: %s\n, %d\n", cmd_buf, paylen_c);
-				//usleep(500);
 				send(s2_daemon, payload_c, paylen_c, 0);
+
+				// send ACK to cproxy
+				char msg_ack[9999] = { 0 };
+				char *msg = "ack";
+				int msg_ack_len =
+				    make_msg(msg_ack, ACK, 0, sessionID,
+					     strlen(msg), msg);
+				send(s1_cproxy, msg_ack, msg_ack_len, 0);
+			    } else if (type == ACK) {
+				got_ack = true;
+				// TODO
+				// pop/remove head message in queue -- it's been acknowledged
 			    } else {
 				//printf("ERROR: unknown message type\n");
 				;
@@ -202,7 +230,7 @@ void run(int port)
 				// shift beginning of cmd_buf to next message
 				pkt_buf += hdr_and_pay;
 				//printf
-				  //  ("~~WOW multiple messages! going to go again.~~\n");
+				//  ("~~WOW multiple messages! going to go again.~~\n");
 			    } else {
 				go_again = 0;
 			    }
@@ -231,12 +259,15 @@ void run(int port)
 			    make_msg(msg_d, DATA, 0, sessionID, len2,
 				     reply_buf);
 
-			//usleep(500);
-			send(s1_cproxy, msg_d, msg_len_d, 0);
+			// put msg_d AND msg_len_d together on queue
+			// TODO
+			// sending message before reading recv()'s
+			//send(s1_cproxy, msg_d, msg_len_d, 0)
+
 			memset(reply_buf, 0, sizeof(reply_buf));
 		    } else {	// len < 1
-		      //printf("Telnet-daemon connection failed, reconnecting ...\n");
-		      usleep(50000);
+			//printf("Telnet-daemon connection failed, reconnecting ...\n");
+			usleep(50000);
 		    }
 		}
 	    }
