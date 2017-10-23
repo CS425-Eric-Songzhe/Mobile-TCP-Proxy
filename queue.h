@@ -1,15 +1,15 @@
 #ifndef QUEUE_H
 #define QUEUE_H
 
-typedef struct msg {
+typedef struct Msg {
 	char* content;
-	struct msg* next;
-}msg;
+	struct Msg* next;
+}Msg;
 
-msg* create_queue();
-msg* new_msg(char* content, int length);
-void enqueue(msg *head, msg *node);
-msg* dequeue(msg *head);
-int clear(msg *head);
+Msg* create_queue();
+Msg* new_msg(char* content, int length);
+void enqueue(Msg *head, Msg *node);
+Msg* dequeue(Msg *head);
+int clear(Msg *head);
 
 #endif

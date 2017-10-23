@@ -1,7 +1,7 @@
 
 FLAGS = gcc -Wall          
 
-OTHERS = mysockets.c mymessages.c
+OTHERS = mysockets.c mymessages.c queue.c
 
 .PHONY : all clean cproxy sproxy
 

@@ -15,6 +15,7 @@
 #include <stdbool.h>
 #include "mysockets.h"
 #include "mymessages.h"
+#include "queue.h"
 
 
 void run(char const *ip, int port_sproxy, int port_telnet);
@@ -66,6 +67,9 @@ void run(char const *ip, int port_sproxy, int port_telnet)
     s1_telnet = accept_client(sock_telnet, &addr_telnet);
     //printf("- telnet request accepted\n");
     int sessionID = rand();
+    int seqID = -1;
+    Msg *queue = create_queue();
+    int ackID = -1;
 
     int len1 = 0, len2 = 0;
     while (1) {
@@ -169,13 +173,19 @@ void run(char const *ip, int port_sproxy, int port_telnet)
 		if (FD_ISSET(s1_telnet, &readfds)) {
 		    len1 = recv(s1_telnet, cmd_buf, sizeof(cmd_buf), 0);
 		    if (len1 > 0) {
+		        seqID++;
+		      
 			// make message
+			Msg *node = NULL;
 			char msg_t[9999] = { 0 };
 			int msg_len_t =
-			  make_msg(msg_t, DATA, 0, sessionID, len1, 2020,
+			  make_msg(msg_t, DATA, ackID, sessionID, len1, seqID,
 				     cmd_buf);
-
-			// TODO place sent message on queue
+			//printf("Recved from telnet: %s\n", cmd_buf);
+			// place sent message on queue
+			node = new_msg(msg_t, msg_len_t);
+			enqueue(queue, node);
+			printf("placed message on queue\n");
 			send(s2_sproxy, msg_t, msg_len_t, 0);
 
 			memset(cmd_buf, 0, sizeof(cmd_buf));
@@ -198,18 +208,18 @@ void run(char const *ip, int port_sproxy, int port_telnet)
 			// parse each message from packet
 			do {
 			    int type = -1;
-			    int ackID = -1;
-			    int seqID = -1;
+			    int ackID_S = -1;
+			    int seqID_S = -1;
 			    int sessionID_S = -1;
 			    char payload_s[9999] = { 0 };
 			    int paylen_s =
-				parse_msg(pkt_buf, &type, &ackID,
-					  &sessionID_S, &seqID,
+				parse_msg(pkt_buf, &type, &ackID_S,
+					  &sessionID_S, &seqID_S,
 					  payload_s);
 
 			    // If message is heartbeat, just record
 			    if (type == HEARTBEAT) {
-				printf("Received HB (%d) from %d\n", ackID,
+				printf("Received HB (%d) from %d\n", ackID_S,
 				       sessionID_S);
 				gettimeofday(&hb_time, NULL);
 				hb_recv++;
@@ -218,10 +228,24 @@ void run(char const *ip, int port_sproxy, int port_telnet)
 			    // else, if message is data, send payload
 			    else if (type == DATA) {
 				// send DATA(payload) to telnet 
-				printf("Received Data from %d\n",
-				       sessionID_S);
-				send(s1_telnet, payload_s, paylen_s, 0);
+				printf("Received Data (#%d) from %d\n",
+				       seqID_S, sessionID_S);
+				
+				//printf("seqID: %d >= ackID_S: %d\n", seqID, ackID_S);
+				if(seqID >= ackID_S){
+				  ;//printf("Need to retransmit.\n");
+				}
+				else{ // <
+				  //printf("Msg acked (%d), dequeue.\n", ackID_S);
+					dequeue(queue);
+				}
 
+				//printf("current ackID: %d. seqID_S: %d \n", ackID, seqID_S);
+				ackID++;
+				//ackID = seqID_S + 1;
+				//printf("updating ackID to %d\n",ackID);
+
+				send(s1_telnet, payload_s, paylen_s, 0);
 			    } else {
 				printf("ERROR: unknown message type: %d\n",
 				       type);
