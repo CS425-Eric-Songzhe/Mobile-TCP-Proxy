@@ -67,7 +67,6 @@ void run(char const *ip, int port_sproxy, int port_telnet)
     //printf("- telnet request accepted\n");
     int sessionID = rand();
 
-    int got_ack = true;
     int len1 = 0, len2 = 0;
     while (1) {
 
@@ -129,7 +128,7 @@ void run(char const *ip, int port_sproxy, int port_telnet)
 		char *payload_HB = " ";
 		int msg_len_HB =
 		    make_msg(msg_HB, HEARTBEAT, hb_sent, sessionID,
-			     sizeof(payload_HB), payload_HB);
+			     sizeof(payload_HB), 2020, payload_HB);
 		//usleep(500);
 		send(s2_sproxy, msg_HB, msg_len_HB, 0);
 		printf("send HB %d\n", hb_sent);
@@ -158,22 +157,7 @@ void run(char const *ip, int port_sproxy, int port_telnet)
 		    gettimeofday(&hb_time, NULL);
 		}
 	    }
-	    // Send next message in queue
-	    if (got_ack) {
 
-		// check if there is a message to send
-		if (1 /*queue is not empty */ ) {
-		    // TODO 
-		    // get/read head message from queue (don't remove/delete yet)
-		    char *msg = { 0 };
-		    int len = 0;
-
-		    // send it
-		    send(s2_sproxy, msg, len, 0);
-
-		    got_ack = false;	// mark as unacknowledged 
-		}
-	    }
 	    // Read recv()'s
 	    if (rv == -1) {
 		perror("select");	// error occurred in select()
@@ -188,13 +172,11 @@ void run(char const *ip, int port_sproxy, int port_telnet)
 			// make message
 			char msg_t[9999] = { 0 };
 			int msg_len_t =
-			    make_msg(msg_t, DATA, 0, sessionID, len1,
+			  make_msg(msg_t, DATA, 0, sessionID, len1, 2020,
 				     cmd_buf);
 
-			// put msg_t AND msg_len_t together on queue
-			// TODO
-			// sending message before reading recv()'s
-			//send(s2_sproxy, msg_t, msg_len_t, 0);
+			// TODO place sent message on queue
+			send(s2_sproxy, msg_t, msg_len_t, 0);
 
 			memset(cmd_buf, 0, sizeof(cmd_buf));
 		    } else {	// len < 1
@@ -217,11 +199,12 @@ void run(char const *ip, int port_sproxy, int port_telnet)
 			do {
 			    int type = -1;
 			    int ackID = -1;
+			    int seqID = -1;
 			    int sessionID_S = -1;
 			    char payload_s[9999] = { 0 };
 			    int paylen_s =
 				parse_msg(pkt_buf, &type, &ackID,
-					  &sessionID_S,
+					  &sessionID_S, &seqID,
 					  payload_s);
 
 			    // If message is heartbeat, just record
@@ -239,17 +222,6 @@ void run(char const *ip, int port_sproxy, int port_telnet)
 				       sessionID_S);
 				send(s1_telnet, payload_s, paylen_s, 0);
 
-				// send ACK to sproxy
-				char msg_ack[9999] = { 0 };
-				char *msg = "ack";
-				int msg_ack_len =
-				    make_msg(msg_ack, ACK, 0, sessionID,
-					     strlen(msg), msg);
-				send(s2_sproxy, msg_ack, msg_ack_len, 0);
-			    } else if (type == ACK) {
-				got_ack = true;
-				// TODO
-				// pop/remove head message in queue -- it's been acknowledged
 			    } else {
 				printf("ERROR: unknown message type: %d\n",
 				       type);

@@ -44,7 +44,7 @@ void encode_int(int n, char *msg, int index)
 /*
  * prepend length of payload to payload. this is the message to be sent
  */
-int make_msg(char *msg, int type, int ackID, int sessionID, int paylen,
+int make_msg(char *msg, int type, int ackID, int sessionID, int paylen, int seqID,
 	     char *payload)
 {
 
@@ -60,6 +60,9 @@ int make_msg(char *msg, int type, int ackID, int sessionID, int paylen,
     // Paylen
     encode_int(paylen, msg, 12);
 
+    // SeqID
+    encode_int(seqID, msg, 16);
+
     // Append Payload
     memcpy(&msg[HDR_LEN], payload, paylen);
 
@@ -72,7 +75,7 @@ int make_msg(char *msg, int type, int ackID, int sessionID, int paylen,
 /*
  * parse message and pull out fields type, ackID, sessionID, and payload
  */
-int parse_msg(char *msg, int *type, int *ackID, int *sessionID,
+int parse_msg(char *msg, int *type, int *ackID, int *sessionID, int *seqID,
 	      char *payload)
 {
 
@@ -87,6 +90,9 @@ int parse_msg(char *msg, int *type, int *ackID, int *sessionID,
 
     // Paylen
     int paylen = decode_int(msg, 12);
+
+    // SeqID
+    *seqID = decode_int(msg, 16);
 
     //printf("Recv data: %s\n", &msg[HDR_LEN]);
 
