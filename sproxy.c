@@ -16,7 +16,7 @@
 #include <stdbool.h>
 #include "mysockets.h"
 #include "mymessages.h"
-
+#include "queue.h"
 
 void run(int port);
 
@@ -58,6 +58,9 @@ void run(int port)
     // Forcefully attaching socket to port
     connect_to_server(&daemon_address, server_teldaemon);
 
+    int seqID = -1;
+    int ackID = -1;
+    Msg* queue = create_queue();
     // Client Loop        
     while (1) {
 	// Setup Sockets
@@ -116,7 +119,7 @@ void run(int port)
 		((now.tv_usec - last.tv_usec) / 1000000.0);
 	    //printf("diff: %f\n", diff);
 	    if (diff >= 1) {
-		//send heartbeat;
+	        //send heartbeat;
 		char msg_HB[9999] = { 0 };
 		char *payload_HB = " ";
 		int msg_len_HB =
@@ -163,23 +166,21 @@ void run(int port)
 			// parse each message from packet
 			do {
 			    int type = -1;
-			    int ackID = -1;
-			    int seqID = -1;
+			    int ackID_C = -1;
+			    int seqID_C = -1;
 			    int sessionID_C = -1;
 			    char payload_c[9999] = { 0 };
 			    int paylen_c =
-				parse_msg(pkt_buf, &type, &ackID,
-					  &sessionID_C, &seqID,
+				parse_msg(pkt_buf, &type, &ackID_C,
+					  &sessionID_C, &seqID_C,
 					  payload_c);
 			    if (sessionID != sessionID_C) {
-				printf
-				    ("New Session ID: changing %d to %d\n",
-				     sessionID, sessionID_C);
+			      printf("New Session ID: changing %d to %d\n",sessionID, sessionID_C);
 				sessionID = sessionID_C;
 			    }
 			    // If message is heartbeat, just record
 			    if (type == HEARTBEAT) {
-				printf("Received HB (%d) from %d\n", ackID,
+				printf("Received HB (%d) from %d\n", ackID_C,
 				       sessionID_C);
 				// record time of this heartbeat
 				gettimeofday(&hb_time, NULL);
@@ -187,8 +188,23 @@ void run(int port)
 				last_hb++;
 			    } else if (type == DATA) {
 				// send DATA(payload) to telnet-daemon
-				printf("Received Data from %d\n",
-				       sessionID_C);
+				printf("Received Data (#%d) from %d\n",
+				       seqID_C, sessionID_C);
+
+				//printf("seqID: %d >= ackID_C: %d\n", seqID, ackID_C);
+				
+				if(seqID >= ackID_C){
+				  ;//printf("Need to retransmit.\n");
+				}
+				else{ // <
+				  //printf("Msg acked (%d), dequeue.\n", ackID_C);
+				  dequeue(queue);
+				}
+
+				//printf("current ackID: %d. seqID_C: %d \n", ackID, seqID_C); 
+				//ackID = seqID_C + 1;
+				ackID++;
+				//printf("updating ackID to %d\n",ackID);
 				send(s2_daemon, payload_c, paylen_c, 0);
 
 			    } else {
@@ -228,15 +244,23 @@ void run(int port)
 		    len2 =
 			recv(s2_daemon, reply_buf, sizeof(reply_buf), 0);
 		    if (len2 > 0) {
+		      //printf("%s\n", reply_buf);
+		        
+		      seqID++;
+			
 			// make message
+			Msg *node = NULL;
 			char msg_d[9999] = { 0 };
 			int msg_len_d =
-			  make_msg(msg_d, DATA, 0, sessionID, len2, 2020,
+			  make_msg(msg_d, DATA, ackID, sessionID, len2, seqID,
 				     reply_buf);
 
 			// TODO place sent message on queue
-			send(s1_cproxy, msg_d, msg_len_d, 0);
-
+			node = new_msg(msg_d, msg_len_d);
+			enqueue(queue, node);
+			printf("placed message on queue\n");
+			send(s1_cproxy, msg_d, msg_len_d, 0);\
+			printf("Sending msg (#%d)\n", seqID);
 			memset(reply_buf, 0, sizeof(reply_buf));
 		    } else {	// len < 1
 			//printf("Telnet-daemon connection failed, reconnecting ...\n");
