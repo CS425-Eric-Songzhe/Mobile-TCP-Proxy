@@ -23,7 +23,7 @@ void enqueue(msg *head, msg *node) {
 	cur->next = node;
 }
 
-msg* pop(msg *head) {
+msg* dequeue(msg *head) {
 	msg *cur = head->next;
 	if (cur != NULL)
 		head->next = head->next->next;
